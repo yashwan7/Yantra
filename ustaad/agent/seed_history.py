@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
+from agent.config import get_settings
 from agent.ledger import get_outcome_ledger
 from agent.memory import MemoryStore, get_memory_store
 from agent.templates import (
@@ -27,10 +28,19 @@ from agent.templates import (
 logger = logging.getLogger(__name__)
 
 
-def seed_memory(store: MemoryStore, ledger_path: str = "data/outcome_ledger.json") -> int:
-    """Seed synthetic history into the memory store and outcome ledger. Returns count of entries."""
-    logger.info("Seeding historical incidents into memory store and ledger...")
-    ledger = get_outcome_ledger(ledger_path)
+def seed_memory(store: Optional[MemoryStore] = None, bank_id: Optional[str] = None) -> int:
+    """
+    Seed synthetic history into BOTH the memory store and matching outcome ledger
+    for the specified bank so they cannot diverge. Returns count of memory entries.
+    """
+    cfg = get_settings()
+    target_bank = bank_id if bank_id is not None else cfg.hindsight_bank_id
+
+    if store is None:
+        store = get_memory_store(bank_id=target_bank)
+
+    logger.info("Seeding historical incidents into memory store and ledger for bank '%s'...", target_bank)
+    ledger = get_outcome_ledger(bank_id=target_bank)
     ledger.clear()
 
     now = datetime.utcnow()

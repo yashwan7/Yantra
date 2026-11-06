@@ -27,7 +27,7 @@ void    uart_write(const char *l)  {
         stub_uart_pos += n;
     }
 }
-uint32_t millis(void) { return stub_millis_val += 1000; }
+uint32_t millis(void) { return stub_millis_val += 100; }
 
 static void reset_stubs(void) {
     stub_relay_state = 1;
@@ -39,7 +39,8 @@ static void reset_stubs(void) {
 /* ── Helpers ────────────────────────────────────────────────────────────────  */
 
 static void run_calibration(int32_t current_ma) {
-    for (int i = 0; i < BASELINE_WINDOW_S; i++) {
+    /* 15 blanking ticks + 20 calibration ticks = 35 ticks */
+    for (int i = 0; i < INRUSH_BLANKING_TICKS + BASELINE_SAMPLE_COUNT; i++) {
         safety_tick(current_ma);
     }
 }
@@ -60,6 +61,19 @@ static int test_calibration(void) {
     return 1;
 }
 
+static int test_inrush_blanking_prevents_false_trip(void) {
+    reset_stubs();
+    safety_init();
+    /* During initial startup inrush, motor draws 4x current (1500 mA) */
+    for (int i = 0; i < 5; i++) {
+        safety_tick(700);  /* high inrush, below hard limit */
+    }
+    ASSERT(safety_get_state() == SAFETY_CALIBRATING, "should remain calibrating without tripping during inrush");
+    ASSERT(stub_relay_state == 1, "relay must remain ON during startup inrush");
+    printf("PASS test_inrush_blanking_prevents_false_trip\n");
+    return 1;
+}
+
 static int test_no_trip_at_safe_ratio(void) {
     reset_stubs();
     safety_init();
@@ -76,12 +90,12 @@ static int test_trip_on_consecutive_overcurrent(void) {
     reset_stubs();
     safety_init();
     run_calibration(380);
-    /* 1.9x for 3 consecutive ticks — must trip */
-    int32_t overcurrent = (int32_t)(380 * 1.9f);  /* ~722 mA */
+    /* 1.9x for 3 consecutive 100ms ticks — must trip (300 ms) */
+    int32_t overcurrent = (int32_t)(380 * 1.9f);
     for (int i = 0; i < TRIP_CONSECUTIVE_SAMPLES; i++) {
         safety_tick(overcurrent);
     }
-    ASSERT(safety_get_state() == SAFETY_TRIPPED, "should be TRIPPED after 3 overcurrent ticks");
+    ASSERT(safety_get_state() == SAFETY_TRIPPED, "should be TRIPPED after 3 consecutive overcurrent ticks");
     ASSERT(stub_relay_state == 0, "relay should be OFF");
     ASSERT(strstr(stub_uart_buf, "CUTOFF") != NULL, "CUTOFF event should be emitted");
     printf("PASS test_trip_on_consecutive_overcurrent\n");
@@ -124,6 +138,7 @@ static int test_reset_after_trip(void) {
     ASSERT(ok == 1, "reset should succeed with valid token");
     ASSERT(safety_get_state() == SAFETY_NORMAL, "should be NORMAL after reset");
     ASSERT(stub_relay_state == 1, "relay should be ON after reset");
+    ASSERT(safety_in_inrush_blanking() == 1, "should be in inrush blanking window immediately after reset");
     printf("PASS test_reset_after_trip\n");
     return 1;
 }
@@ -147,6 +162,7 @@ static int test_empty_token_rejected(void) {
 int main(void) {
     int passed = 0, total = 0;
     total++; passed += test_calibration();
+    total++; passed += test_inrush_blanking_prevents_false_trip();
     total++; passed += test_no_trip_at_safe_ratio();
     total++; passed += test_trip_on_consecutive_overcurrent();
     total++; passed += test_no_trip_on_two_samples();
@@ -157,4 +173,3 @@ int main(void) {
     printf("\n%d / %d tests passed.\n", passed, total);
     return (passed == total) ? 0 : 1;
 }
-

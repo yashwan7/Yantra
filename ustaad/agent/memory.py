@@ -53,14 +53,25 @@ class MemoryStore(Protocol):
 
 # ── LocalMemory Implementation ───────────────────────────────────────────────
 
+def sanitize_bank_id(bank_id: str) -> str:
+    """Sanitize bank ID for filesystem path safety."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", bank_id)
+
+
 class LocalMemory:
     """
     JSONL-backed memory store with token-overlap similarity search.
     Used when HINDSIGHT_API_KEY is not configured or in SIMULATOR mode.
+    Each memory bank maintains its own isolated JSONL store.
     """
 
-    def __init__(self, filepath: str | Path = "data/local_memory.jsonl") -> None:
-        self.path = Path(filepath)
+    def __init__(self, bank_id: str = "ustaad-site1", filepath: Optional[str | Path] = None) -> None:
+        self.bank_id = bank_id
+        if filepath is not None:
+            self.path = Path(filepath)
+        else:
+            clean_bank = sanitize_bank_id(bank_id)
+            self.path = Path(f"data/local_memory_{clean_bank}.jsonl")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._entries: list[dict[str, Any]] = []
         self._load()
@@ -269,29 +280,32 @@ class HindsightMemory:
 
 # ── Factory ───────────────────────────────────────────────────────────────────
 
-_memory_singleton: Optional[MemoryStore] = None
+_memory_registry: dict[str, MemoryStore] = {}
 
 
-def get_memory_store(force_local: bool = False) -> MemoryStore:
-    """Return memory store according to environment config."""
-    global _memory_singleton
-    if _memory_singleton is not None and not force_local:
-        return _memory_singleton
-
+def get_memory_store(force_local: bool = False, bank_id: Optional[str] = None) -> MemoryStore:
+    """Return memory store for the specified bank according to environment config."""
+    global _memory_registry
     cfg = get_settings()
+    target_bank = bank_id if bank_id is not None else cfg.hindsight_bank_id
+
+    registry_key = f"{target_bank}::force_local={force_local}"
+    if registry_key in _memory_registry:
+        return _memory_registry[registry_key]
+
     if cfg.use_hindsight and not force_local:
         try:
             store = HindsightMemory(
                 base_url=cfg.hindsight_base_url,
                 api_key=cfg.hindsight_api_key,
-                bank_id=cfg.hindsight_bank_id,
+                bank_id=target_bank,
             )
-            _memory_singleton = store
+            _memory_registry[registry_key] = store
             return store
         except Exception:
             logger.exception("Failed to initialize Hindsight client, falling back to LocalMemory")
 
-    store = LocalMemory()
-    _memory_singleton = store
+    store = LocalMemory(bank_id=target_bank)
+    _memory_registry[registry_key] = store
     return store
 

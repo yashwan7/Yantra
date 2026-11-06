@@ -7,16 +7,25 @@ never depend on fuzzy regex parsing of LLM-extracted facts from Hindsight.
 
 Hindsight provides semantic memory & narrative recall;
 OutcomeLedger provides 100% deterministic metrics and counts.
+Each memory bank maintains its own isolated ledger.
 """
 from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from agent.config import get_settings
+
 logger = logging.getLogger(__name__)
+
+
+def sanitize_bank_id(bank_id: str) -> str:
+    """Sanitize bank ID for filesystem path safety."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", bank_id)
 
 
 @dataclass
@@ -33,10 +42,15 @@ class LedgerRecord:
 
 
 class OutcomeLedger:
-    """Thread-safe persistent ledger for exact incident and fix metrics."""
+    """Thread-safe persistent ledger for exact incident and fix metrics for a specific bank."""
 
-    def __init__(self, filepath: str | Path = "data/outcome_ledger.json") -> None:
-        self.path = Path(filepath)
+    def __init__(self, bank_id: str = "ustaad-site1", filepath: Optional[str | Path] = None) -> None:
+        self.bank_id = bank_id
+        if filepath is not None:
+            self.path = Path(filepath)
+        else:
+            clean_bank = sanitize_bank_id(bank_id)
+            self.path = Path(f"data/outcome_ledger_{clean_bank}.json")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._records: list[LedgerRecord] = []
         self._load()
@@ -159,11 +173,15 @@ class OutcomeLedger:
             self.path.unlink()
 
 
-_ledger_instance: Optional[OutcomeLedger] = None
+_ledger_registry: dict[str, OutcomeLedger] = {}
 
 
-def get_outcome_ledger(filepath: str | Path = "data/outcome_ledger.json") -> OutcomeLedger:
-    global _ledger_instance
-    if _ledger_instance is None or _ledger_instance.path != Path(filepath):
-        _ledger_instance = OutcomeLedger(filepath)
-    return _ledger_instance
+def get_outcome_ledger(bank_id: Optional[str] = None, filepath: Optional[str | Path] = None) -> OutcomeLedger:
+    global _ledger_registry
+    if bank_id is None:
+        bank_id = get_settings().hindsight_bank_id
+
+    key = f"{bank_id}::{filepath}"
+    if key not in _ledger_registry:
+        _ledger_registry[key] = OutcomeLedger(bank_id=bank_id, filepath=filepath)
+    return _ledger_registry[key]

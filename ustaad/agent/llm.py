@@ -46,9 +46,20 @@ def build_template_advice(
     Deterministic advisory builder combining exact ledger statistics
     with semantic memory facts retrieved from Hindsight.
     
-    Guarantees exact counts (e.g., worked 2 of 3 times) regardless of
-    whether Hindsight returns raw template strings or extracted facts.
+    ENFORCED DIVISION OF ROLES:
+    1. Hindsight recall decides WHAT history is relevant and provides the narrative.
+       If Hindsight recall returns nothing relevant (not recalled), the advice MUST
+       be generic cold-start advice with NO historical counts.
+    2. The ledger is used ONLY for exact worked/failed counts of matching actions.
     """
+    if not recalled:
+        prefix = "EARLY WARNING: " if is_precursor else "ADVISORY: "
+        return (
+            f"{prefix}Anomaly detected on {machine_id}. "
+            "No prior matching incidents in memory. "
+            "Recommend immediate visual inspection of motor mounts, belt tension, and bearings."
+        )
+
     if ledger is None:
         ledger = get_outcome_ledger()
     stats = ledger.get_stats(machine_id) if ledger else {}
@@ -56,7 +67,7 @@ def build_template_advice(
     last_fix = stats.get("last_fix") or "Inspection"
     best_fix = stats.get("best_fix") or last_fix
 
-    # Fallback to regex if ledger is empty (e.g. isolated unit tests)
+    # Fallback to regex over recalled items if ledger has no outcomes yet for this bank
     if not fix_outcomes and recalled:
         for m in recalled:
             t = m.text
@@ -86,16 +97,10 @@ def build_template_advice(
 
     total_seen = max(len(recalled), stats.get("total_incidents", 0))
 
-    if not recalled and not fix_outcomes:
-        prefix = "EARLY WARNING: " if is_precursor else "ADVISORY: "
-        return (
-            f"{prefix}Anomaly detected on {machine_id}. "
-            "No prior matching incidents in memory. "
-            "Recommend immediate visual inspection of motor mounts, belt tension, and bearings."
-        )
-
     worked_count = fix_outcomes.get(best_fix, {}).get("worked", 0)
     failed_count = fix_outcomes.get(best_fix, {}).get("failed", 0)
+
+    count_str = f"1 similar past incident" if total_seen == 1 else f"{total_seen} similar past incidents"
 
     if is_precursor:
         return (
@@ -105,7 +110,7 @@ def build_template_advice(
         )
 
     return (
-        f"ADVISORY ({machine_id}): Recalled {total_seen} similar past incidents. "
+        f"ADVISORY ({machine_id}): Recalled {count_str}. "
         f"Recommended fix: '{best_fix}' (historical outcomes: {worked_count} WORKED, {failed_count} FAILED). "
         f"Note: If '{best_fix}' has failed recently, check mechanical mounting bolts."
     )
@@ -125,11 +130,12 @@ class MockLLM:
         recalled: list[Memory],
         registry: Optional[ToolRegistry] = None,
         is_precursor: bool = False,
+        ledger: Optional[Any] = None,
     ) -> str:
         self.call_count += 1
         if self.canned_response:
             return self.canned_response
-        return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor)
+        return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor, ledger=ledger)
 
 
 class LlmAdvisor:
@@ -152,18 +158,24 @@ class LlmAdvisor:
         recalled: list[Memory],
         registry: Optional[ToolRegistry] = None,
         is_precursor: bool = False,
+        ledger: Optional[Any] = None,
     ) -> str:
         if not self._groq_client:
             logger.info("Using template advisor fallback (no Groq API key or client)")
-            return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor)
+            return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor, ledger=ledger)
 
-        # Build initial prompt
-        history_context = "\n---\n".join(m.text for m in recalled) if recalled else "No prior history found."
+        if not recalled:
+            return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor, ledger=ledger)
+
+        # Build initial prompt with recalled memories and exact ledger grounding
+        stats = ledger.get_stats(machine_id) if ledger else {}
+        history_context = "\n---\n".join(m.text for m in recalled)
         user_prompt = (
             f"Machine: {machine_id}\n"
             f"Current Symptom Signature: {signature}\n"
             f"Incident type: {'PRECURSOR / SOFT ANOMALY' if is_precursor else 'HARD FAULT / OVERCURRENT TRIP'}\n\n"
             f"Recalled Persistent Memories from Hindsight:\n{history_context}\n\n"
+            f"Verified Empirical Outcomes Ledger:\n{json.dumps(stats.get('fix_outcomes', {}))}\n\n"
             "Provide diagnostic advice for the on-site technician. "
             "Highlight what worked, what failed, and specify the recommended fix action."
         )

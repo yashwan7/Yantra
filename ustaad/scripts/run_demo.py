@@ -4,9 +4,9 @@ scripts/run_demo.py — 3-incident demonstration arc in simulator mode.
 Demonstrates the full incident-response learning lifecycle:
   Incident 1: Cold start / generic advice. Stall fault trips cutoff.
               Technician W-07 applies "Lubricated". Verification passes.
-              Outcome retained into memory.
+              Outcome retained into memory and paired ledger.
   Incident 2: Same fault pattern recurred.
-              Agent recalls Incident 1, reports that "Lubricated" worked.
+              Agent recalls Incident 1, reports that "Lubricated" worked (1 WORKED, 0 FAILED).
               Technician applies fix and verifies.
   Incident 3: Precursor pattern (ratio 1.25x + noise) detected.
               Agent issues EARLY WARNING before the hard trip happens!
@@ -28,8 +28,8 @@ from agent.anomaly import classify
 from agent.closed_loop import ClosedLoopController
 from agent.config import get_settings
 from agent.features import compute_features
-from agent.ledger import OutcomeLedger, get_outcome_ledger
-from agent.memory import LocalMemory, get_memory_store
+from agent.ledger import get_outcome_ledger
+from agent.memory import get_memory_store
 from agent.models import (
     AnomalyLevel,
     Features,
@@ -49,31 +49,37 @@ def print_banner(step: str, title: str):
 
 def run_demo(fresh: bool = False):
     cfg = get_settings()
+
+    # If --fresh, generate an isolated unique bank id and clean ledger
+    if fresh:
+        bank_id = f"ustaad-demo-{int(time.time())}"
+        print(f"[INFO] Initializing brand new isolated memory bank: '{bank_id}'")
+    else:
+        bank_id = cfg.hindsight_bank_id
+
     state = SharedState()
-    controller = ClosedLoopController(state)
+    store = get_memory_store(bank_id=bank_id)
+    ledger = get_outcome_ledger(bank_id=bank_id)
+
+    if fresh:
+        ledger.clear()
+        if hasattr(store, "_entries"):
+            store._entries.clear()
+            if hasattr(store, "path") and store.path.exists():
+                store.path.unlink()
+
+    controller = ClosedLoopController(
+        state,
+        bank_id=bank_id,
+        store=store,
+        ledger=ledger,
+    )
     controller.cfg.verify_seconds = 4  # accelerated verification for demo
 
-    mem_path = Path("data/demo_memory.jsonl")
-    ledger_path = Path("data/demo_ledger.json")
-
-    ledger = OutcomeLedger(filepath=ledger_path)
-    # Patch global ledger singleton for this process
-    import agent.ledger as l_mod
-    l_mod._ledger_instance = ledger
-
-    if fresh or not mem_path.exists():
-        if mem_path.exists():
-            mem_path.unlink()
-        ledger.clear()
-        print("[INFO] Clean memory bank and outcome ledger initialized (fresh demo mode).")
-    
-    store = LocalMemory(filepath=mem_path)
-    controller.store = store
-
-    print("\nStarting Ustaad 3-Incident Demo Arc (Machine: Pump-2)...")
+    print(f"\nStarting Ustaad 3-Incident Demo Arc (Machine: Pump-2, Bank: {bank_id})...")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # INCIDENT 1: First Fault — Cold Memory
+    # INCIDENT 1: First Fault — Cold Memory (Truly Generic)
     # ══════════════════════════════════════════════════════════════════════════
     print_banner("INCIDENT 1", "Initial Stall Fault on Pump-2 (Cold Memory)")
     sim_mod.reset_simulator()
@@ -135,10 +141,10 @@ def run_demo(fresh: bool = False):
     disp_result = state.get_display()
     print(f"\n[VERIFICATION RESULT: {disp_result.screen.value.upper()}]")
     print(f"Outcome: {disp_result.body}")
-    print("-> Retained OUTCOME memory: Fix 'Lubricated' WORKED.")
+    print("-> Retained OUTCOME memory and recorded in bank ledger: Fix 'Lubricated' WORKED.")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # INCIDENT 2: Recurrent Fault — Agent Recalls Memory
+    # INCIDENT 2: Recurrent Fault — Agent Recalls Past Incident
     # ══════════════════════════════════════════════════════════════════════════
     print_banner("INCIDENT 2", "Recurrent Fault — Agent Recalls Past Incident")
     sim_mod.reset_simulator()
@@ -160,7 +166,7 @@ def run_demo(fresh: bool = False):
     controller.step()  # ADVISED
 
     recalled = state.get_recalled()
-    print(f"-> Agent recalled {len(recalled)} relevant past incident(s) from memory!")
+    print(f"-> Agent recalled {len(recalled)} relevant past incident(s) from memory bank '{bank_id}'!")
     disp2 = state.get_display()
     print(f"\n[AGENT DISPLAY - {disp2.screen.value.upper()}]")
     print(f"Title: {disp2.title}")
@@ -231,6 +237,6 @@ def run_demo(fresh: bool = False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Ustaad 3-incident demo arc")
-    parser.add_argument("--fresh", action="store_true", help="Start with clean memory bank")
+    parser.add_argument("--fresh", action="store_true", help="Start with clean isolated memory bank")
     args = parser.parse_args()
     run_demo(fresh=args.fresh)

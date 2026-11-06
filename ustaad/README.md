@@ -102,10 +102,30 @@ synthesis = client.reflect(
 
 ---
 
+## Division of Roles: Hindsight vs. Outcome Ledger
+
+To guarantee both rich semantic memory reasoning and mathematical precision across machine runs, Ustaad strictly separates responsibilities:
+
+1. **Hindsight (Vectorize) Memory Bank:**
+   * **Role:** Semantic retrieval and narrative intelligence.
+   * Answers: *Which historical incidents match the current symptoms? What was the qualitative context, root cause, and technician notes?*
+   * **Rule:** If Hindsight recall returns nothing relevant (cold start or novel symptom), the advice is **strictly generic** with zero historical counts. The agent never hallucinates prior fixes.
+2. **Deterministic Bank-Specific Outcome Ledger:**
+   * **Role:** Exact counting and empirical metrics.
+   * Answers: *For the candidate fixes recalled by Hindsight, exactly how many times did each empirically succeed (WORKED) vs fail (FAILED)?*
+   * Each memory bank (`bank_id`) has an isolated ledger (`data/outcome_ledger_<bank_id>.json`). Banks never cross-contaminate counts.
+   * `seed_history.py` populates both Hindsight (with rich tags and metadata) and the matching ledger in lockstep.
+
+---
+
 ## Safety Design
 
 1. **Hardware Interlock Boundary:** The electrical cutoff decision is implemented entirely in portable C (`firmware/frdm_safety/safety_logic.c`) running on the microcontroller.
-2. **Deterministic Trip Rule:** Power is cut if current exceeds 1.8× calibrated baseline for 3 consecutive 1-second samples, or if absolute current exceeds 800 mA.
+2. **Deterministic Trip Rule & Inrush Blanking:**
+   * **Inrush Blanking Window:** For the first ~1.5 seconds (`INRUSH_BLANKING_TICKS = 15` @ 100ms) after relay engagement, ratio-based trips are masked to accommodate DC motor spin-up inrush current.
+   * **Consecutive Sample Trip:** Once past inrush, power is cut if current exceeds 1.8× calibrated baseline for 3 consecutive 100ms samples (300 ms).
+   * **Median Baseline Calibration:** Collected after inrush spin-up using a median filter over 20 samples to avoid baseline skew.
+   * **Absolute Hard Limit:** Configurable hard ceiling (e.g., 800 mA in simulator / tuned to motor max) that trips instantaneously for catastrophic shorts.
 3. **Latched State:** Once tripped, the relay cannot be re-engaged by software commands alone. It requires an authorized on-site technician to badge in via RFID and submit an authenticated reset request.
 4. **Advisory LLM:** The LLM runs out-of-band as an advisor only. If the LLM is slow, hallucinates, or network connectivity drops, the deterministic safety interlock operates without degradation.
 

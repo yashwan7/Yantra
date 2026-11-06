@@ -52,13 +52,18 @@ class ClosedLoopController:
         state: SharedState,
         clock: Optional[Callable[[], float]] = None,
         llm: Optional[Any] = None,
+        bank_id: Optional[str] = None,
+        store: Optional[MemoryStore] = None,
+        ledger: Optional[Any] = None,
     ) -> None:
         self.state = state
         self.clock = clock or time.time
         self.cfg = get_settings()
+        self.bank_id = bank_id if bank_id is not None else self.cfg.hindsight_bank_id
         self.llm = llm or LlmAdvisor()
         self.registry = ToolRegistry(state)
-        self.store = get_memory_store()
+        self.store = store or get_memory_store(bank_id=self.bank_id)
+        self.ledger = ledger or get_outcome_ledger(bank_id=self.bank_id)
 
         self.current_state: LoopState = LoopState.IDLE
         self.verify_started_at: float = 0.0
@@ -143,46 +148,7 @@ class ClosedLoopController:
         )
         self.state.set_incident(incident)
 
-        # Retain INCIDENT in persistent memory
-        action_text = "Overcurrent cutoff triggered, power isolated" if latest_reading and latest_reading.cutoff_event else "Hard threshold anomaly detected"
-        if escalation:
-            action_text = "Initial fix failed verification, anomaly re-escalated"
-
-        inc_mem = build_incident_memory(
-            machine_id=features.machine_id,
-            timestamp=now_dt,
-            severity=severity,
-            signature=sig,
-            action_taken=action_text,
-            responder="unassigned",
-        )
-        tags = [
-            f"machine:{features.machine_id}",
-            "type:incident",
-            f"severity:{severity}",
-        ]
-        meta = {
-            "machine": features.machine_id,
-            "severity": severity,
-            "escalation": str(escalation),
-        }
-        self.store.retain(
-            inc_mem,
-            timestamp=now_dt,
-            tags=tags,
-            metadata=meta,
-        )
-        ledger = get_outcome_ledger()
-        ledger.record_incident(
-            machine_id=features.machine_id,
-            signature=sig,
-            ts=self.clock(),
-            is_precursor=False,
-        )
-        self.state.add_timeline_entry(
-            TimelineEntry(kind="INCIDENT", text=inc_mem, ts=self.clock())
-        )
-
+        # Retain INCIDENT in persistent memory after advice has been formulated (or at conclusion of detection)
         self.current_state = LoopState.DETECTED
 
     def _transition_to_advised(self) -> None:
@@ -191,25 +157,27 @@ class ClosedLoopController:
             self.current_state = LoopState.IDLE
             return
 
+        # 1. Recall past incidents strictly PRIOR to this incident
         logger.info("Recalling past memories for signature: %s", inc.signature)
         recalled = self.store.recall(inc.signature, limit=5)
         inc.recalled = recalled
         self.state.set_recalled(recalled)
 
-        # Get LLM or template advice
+        # 2. Get LLM or template advice based on prior history
         advice = self.llm.generate_advice(
             machine_id=inc.machine_id,
             signature=inc.signature,
             recalled=recalled,
             registry=self.registry,
             is_precursor=False,
+            ledger=self.ledger,
         )
         if inc.escalation:
             advice = f"[ESCALATED WARNING] Previous fix was ineffective!\n{advice}"
 
         inc.advice = advice
 
-        # Update display
+        # 3. Update display
         title = "ESCALATED FAULT" if inc.escalation else "CRITICAL ANOMALY"
         self.state.set_display(
             UiDisplay(
@@ -218,6 +186,45 @@ class ClosedLoopController:
                 body=advice,
                 risk=RiskLevel.HIGH,
             )
+        )
+
+        # 4. Retain this incident into persistent memory and ledger
+        action_text = "Overcurrent cutoff triggered, power isolated" if inc.features.current_ratio > 1.4 else "Hard threshold anomaly detected"
+        if inc.escalation:
+            action_text = "Initial fix failed verification, anomaly re-escalated"
+
+        inc_mem = build_incident_memory(
+            machine_id=inc.machine_id,
+            timestamp=inc.detected_at,
+            severity=inc.severity,
+            signature=inc.signature,
+            action_taken=action_text,
+            responder="unassigned",
+        )
+        tags = [
+            f"machine:{inc.machine_id}",
+            "type:incident",
+            f"severity:{inc.severity}",
+        ]
+        meta = {
+            "machine": inc.machine_id,
+            "severity": inc.severity,
+            "escalation": str(inc.escalation),
+        }
+        self.store.retain(
+            inc_mem,
+            timestamp=inc.detected_at,
+            tags=tags,
+            metadata=meta,
+        )
+        self.ledger.record_incident(
+            machine_id=inc.machine_id,
+            signature=inc.signature,
+            ts=self.clock(),
+            is_precursor=False,
+        )
+        self.state.add_timeline_entry(
+            TimelineEntry(kind="INCIDENT", text=inc_mem, ts=self.clock())
         )
 
         self.current_state = LoopState.ADVISED
@@ -233,15 +240,14 @@ class ClosedLoopController:
         recalled = self.store.recall(sig, limit=3)
         if recalled:
             logger.info("Soft anomaly matched historical incidents! Issuing early warning.")
-            ledger = get_outcome_ledger()
-            ledger.record_incident(
+            self.ledger.record_incident(
                 machine_id=features.machine_id,
                 signature=sig,
                 ts=now,
                 is_precursor=True,
             )
             warning = build_template_advice(
-                features.machine_id, sig, recalled, is_precursor=True
+                features.machine_id, sig, recalled, is_precursor=True, ledger=self.ledger
             )
             self.state.set_display(
                 UiDisplay(
@@ -312,8 +318,7 @@ class ClosedLoopController:
                     tags=tags,
                     metadata=meta,
                 )
-                ledger = get_outcome_ledger()
-                ledger.record_fix(
+                self.ledger.record_fix(
                     machine_id=inc.machine_id,
                     fix=evt.fix or "Other",
                     worker=self.badged_worker,
@@ -454,8 +459,7 @@ class ClosedLoopController:
                 tags=tags,
                 metadata=meta,
             )
-            ledger = get_outcome_ledger()
-            ledger.record_outcome(
+            self.ledger.record_outcome(
                 machine_id=machine_id,
                 fix=fix,
                 worked=worked,

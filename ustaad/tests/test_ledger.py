@@ -32,3 +32,4 @@ def test_outcome_ledger_counts(tmp_path: Path):
     stats2 = reloaded.get_stats("Pump-2")
     assert stats2["total_incidents"] == 3
     assert stats2["fix_outcomes"]["Lubricated"]["worked"] == 1
+
