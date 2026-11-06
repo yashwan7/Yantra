@@ -1,12 +1,511 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Ustaad — Phase 0 stub</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ustaad — Incident Response Console</title>
+  <style>
+    :root {
+      --bg: #0f141c;
+      --card-bg: #18202c;
+      --border: #263345;
+      --text: #e2e8f0;
+      --text-muted: #8899ac;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --green: #22c55e;
+      --green-bg: rgba(34, 197, 94, 0.15);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.15);
+      --yellow: #f59e0b;
+      --yellow-bg: rgba(245, 158, 11, 0.15);
+      --relay-on: #10b981;
+      --relay-off: #f43f5e;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f1f5f9;
+        --card-bg: #ffffff;
+        --border: #cbd5e1;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --accent: #0284c7;
+        --accent-hover: #0369a1;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", monospace;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+      padding: 16px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: baseline; gap: 10px; }
+    .brand h1 { font-size: 1.5rem; letter-spacing: 1px; color: var(--accent); }
+    .badges { display: flex; gap: 8px; font-size: 0.75rem; }
+    .badge {
+      padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);
+      background: var(--card-bg); font-weight: 600;
+    }
+    .badge.green { border-color: var(--green); color: var(--green); }
+    .badge.red { border-color: var(--red); color: var(--red); }
+    .badge.yellow { border-color: var(--yellow); color: var(--yellow); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.1fr;
+      gap: 16px;
+    }
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .card-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Telemetry metrics */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .metric {
+      background: rgba(0,0,0,0.15);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+    }
+    .metric-val { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    .metric-lbl { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Virtual Display (TFT & OLED) */
+    .tft-bezel {
+      background: #000;
+      border: 3px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      color: #38bdf8;
+      font-family: "Courier New", Courier, monospace;
+      min-height: 160px;
+      position: relative;
+    }
+    .tft-header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed #334155;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+    }
+    .tft-title { font-size: 1.05rem; font-weight: bold; margin-bottom: 6px; }
+    .tft-body { font-size: 0.85rem; color: #cbd5e1; white-space: pre-wrap; margin-bottom: 8px; }
+    .tft-oled-bar {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px dashed #334155;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    /* Buttons */
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    button {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    button:hover { background: #334155; border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #000; font-weight: 700; border: none; }
+    button.primary:hover { background: var(--accent-hover); }
+    button.warn { border-color: var(--yellow); color: var(--yellow); }
+    button.danger { border-color: var(--red); color: var(--red); }
+    button.success { border-color: var(--green); color: var(--green); }
+
+    /* Timeline & memories */
+    .scroll-list { max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .timeline-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border-left: 4px solid var(--accent);
+      background: rgba(0,0,0,0.15);
+      font-size: 0.78rem;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .timeline-item.worked { border-left-color: var(--green); background: var(--green-bg); }
+    .timeline-item.failed { border-left-color: var(--red); background: var(--red-bg); }
+    .timeline-item.incident { border-left-color: var(--yellow); background: var(--yellow-bg); }
+
+    /* Sparkline svg */
+    .sparkline { width: 100%; height: 50px; stroke: var(--accent); fill: none; stroke-width: 2; margin-top: 8px; }
+  </style>
 </head>
 <body>
-<h1>Ustaad Dashboard</h1>
-<p>Phase 0 skeleton — full UI implemented in Phase 5.</p>
+
+<header>
+  <div class="brand">
+    <h1>USTAAD</h1>
+    <span style="font-size: 0.9rem; color: var(--text-muted);" id="site-machine">Loading...</span>
+  </div>
+  <div class="badges">
+    <span class="badge" id="badge-sim">SIMULATOR</span>
+    <span class="badge" id="badge-mem">HINDSIGHT MEMORY</span>
+    <span class="badge" id="badge-llm">GROQ ADVISOR</span>
+    <span class="badge green" id="badge-relay">RELAY: ON</span>
+  </div>
+</header>
+
+<div class="grid">
+  <!-- Column 1: Live Telemetry & Hardware Displays -->
+  <div>
+    <div class="card">
+      <div class="card-title">Live Telemetry & Sensors</div>
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-val" id="val-current">--</div>
+          <div class="metric-lbl">Current (mA)</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="val-ratio">--</div>
+          <div class="metric-lbl">Current Ratio</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="val-temp">--</div>
+          <div class="metric-lbl">Temp (°C)</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="val-slope">--</div>
+          <div class="metric-lbl">Slope (°C/min)</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="val-gas">--</div>
+          <div class="metric-lbl">Gas Delta</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" id="val-noise">--</div>
+          <div class="metric-lbl">Noise Spikes/min</div>
+        </div>
+      </div>
+      <svg class="sparkline" id="current-sparkline" viewBox="0 0 300 50"></svg>
+    </div>
+
+    <!-- Virtual TFT / OLED Display -->
+    <div class="card">
+      <div class="card-title">Virtual Hardware Screen (TFT / OLED)</div>
+      <div class="tft-bezel">
+        <div class="tft-header">
+          <span id="tft-screen-name">SCREEN: IDLE</span>
+          <span id="tft-risk">RISK: LOW</span>
+        </div>
+        <div class="tft-title" id="tft-title">OPERATIONAL</div>
+        <div class="tft-body" id="tft-body">All sensors within nominal tolerance.</div>
+        <div class="tft-oled-bar">
+          <span id="oled-mach">M: Pump-2</span>
+          <span id="oled-worker">WORKER: --</span>
+          <span id="oled-countdown"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operator Actions -->
+    <div class="card">
+      <div class="card-title">On-Site Operator Controls</div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">RFID Badge & Fix Submission:</p>
+      <div class="btn-group">
+        <button onclick="postBadge('W-07')">Badge-in (W-07)</button>
+        <button onclick="postBadge('W-03')">Badge-in (W-03)</button>
+        <button onclick="postBadge('W-11')">Badge-in (W-11)</button>
+      </div>
+      <div class="btn-group" style="margin-top: 10px;">
+        <button onclick="postFix('Lubricated')">Lubricated</button>
+        <button onclick="postFix('Tightened mount')">Tightened mount</button>
+        <button onclick="postFix('Cleared blockage')">Cleared blockage</button>
+        <button onclick="postFix('Replaced part')">Replaced part</button>
+      </div>
+      <div class="btn-group" style="margin-top: 10px;">
+        <button class="primary" onclick="postReset()">Confirm RESET Relay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column 2: Recalled Memories & Simulator Scenarios -->
+  <div>
+    <!-- Simulator Scenarios -->
+    <div class="card">
+      <div class="card-title">Simulator Scenarios</div>
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">Inject industrial anomalies:</p>
+      <div class="btn-group">
+        <button class="danger" onclick="triggerSim('stall')">Stall Fault (Cutoff)</button>
+        <button class="warn" onclick="triggerSim('precursor')">Precursor Pattern</button>
+        <button class="warn" onclick="triggerSim('heat')">Overheat Ramp</button>
+        <button onclick="triggerSim('gas')">Gas Spike</button>
+        <button onclick="triggerSim('door')">Open Enclosure</button>
+      </div>
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; margin-bottom: 6px;">Post-Reset Verification Behavior:</p>
+      <div class="btn-group">
+        <button class="success" onclick="triggerSim('fix_works')">Fix Works (Stabilize)</button>
+        <button class="danger" onclick="triggerSim('fix_fails')">Fix Fails (Re-surge)</button>
+        <button onclick="triggerSim('reset')">Reset Baseline</button>
+      </div>
+    </div>
+
+    <!-- Active Incident & Advisory -->
+    <div class="card">
+      <div class="card-title">Active Incident Advisory</div>
+      <div id="active-incident-box" style="font-size: 0.82rem; color: var(--text);">
+        <em>No active incident. Machine is operating nominally.</em>
+      </div>
+    </div>
+
+    <!-- Recalled Memories -->
+    <div class="card">
+      <div class="card-title">Recalled Historical Incidents</div>
+      <div class="scroll-list" id="recalled-list">
+        <div style="font-size: 0.8rem; color: var(--text-muted);">No recalled memories loaded for current state.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column 3: Patterns & Memory Timeline -->
+  <div>
+    <!-- Reflect Patterns -->
+    <div class="card">
+      <div class="card-title">
+        <span>Persistent Patterns (Reflect)</span>
+        <button style="padding: 2px 6px; font-size: 0.7rem;" onclick="refreshPatterns()">Refresh</button>
+      </div>
+      <div id="patterns-box" style="font-size: 0.8rem; white-space: pre-wrap; font-family: monospace; color: #94a3b8; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 6px;">
+        Loading patterns synthesis...
+      </div>
+    </div>
+
+    <!-- Memory Timeline -->
+    <div class="card">
+      <div class="card-title">Closed-Loop Memory Timeline</div>
+      <div class="scroll-list" id="timeline-list">
+        <!-- Timeline items -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let lastTimelineCount = 0;
+
+  async function pollState() {
+    try {
+      const res = await fetch('/api/state');
+      if (!res.ok) return;
+      const data = await res.json();
+      renderState(data);
+    } catch (e) {
+      console.error("Poll error", e);
+    }
+  }
+
+  function renderState(data) {
+    document.getElementById('site-machine').innerText = `${data.site} / ${data.machine_id}`;
+    
+    // Status badges
+    const relayEl = document.getElementById('badge-relay');
+    if (data.latest_reading.relay === 'OFF' || data.latest_reading.cutoff_event) {
+      relayEl.className = 'badge red';
+      relayEl.innerText = 'RELAY: TRIPPED (OFF)';
+    } else {
+      relayEl.className = 'badge green';
+      relayEl.innerText = 'RELAY: ENGAGED (ON)';
+    }
+
+    document.getElementById('badge-mem').className = data.hindsight_enabled ? 'badge green' : 'badge';
+    document.getElementById('badge-mem').innerText = data.hindsight_enabled ? 'HINDSIGHT: LIVE' : 'MEMORY: LOCAL';
+
+    document.getElementById('badge-llm').className = data.groq_enabled ? 'badge green' : 'badge';
+    document.getElementById('badge-llm').innerText = data.groq_enabled ? 'GROQ: LIVE' : 'LLM: TEMPLATE';
+
+    // Telemetry
+    document.getElementById('val-current').innerText = data.latest_reading.i_ma ? data.latest_reading.i_ma.toFixed(1) : '--';
+    document.getElementById('val-ratio').innerText = data.features.current_ratio ? data.features.current_ratio.toFixed(2) + 'x' : '--';
+    document.getElementById('val-temp').innerText = data.latest_reading.temp_c ? data.latest_reading.temp_c.toFixed(1) : '--';
+    document.getElementById('val-slope').innerText = data.features.temp_slope_c_per_min ? (data.features.temp_slope_c_per_min > 0 ? '+' : '') + data.features.temp_slope_c_per_min.toFixed(2) : '--';
+    document.getElementById('val-gas').innerText = data.features.gas_delta ? data.features.gas_delta.toFixed(0) : '0';
+    document.getElementById('val-noise').innerText = data.features.noise_per_min ? data.features.noise_per_min.toFixed(1) : '0';
+
+    // Sparkline
+    if (data.recent_readings && data.recent_readings.length > 1) {
+      drawSparkline(data.recent_readings);
+    }
+
+    // TFT Screen
+    document.getElementById('tft-screen-name').innerText = `SCREEN: ${data.display.screen.toUpperCase()}`;
+    document.getElementById('tft-risk').innerText = `RISK: ${data.display.risk}`;
+    document.getElementById('tft-title').innerText = data.display.title || 'OPERATIONAL';
+    document.getElementById('tft-body').innerText = data.display.body || '';
+    document.getElementById('oled-mach').innerText = `M: ${data.machine_id}`;
+    document.getElementById('oled-worker').innerText = `WORKER: ${data.display.worker || '--'}`;
+    document.getElementById('oled-countdown').innerText = data.display.countdown_s ? `WAIT: ${data.display.countdown_s}s` : '';
+
+    // Active incident box
+    const incBox = document.getElementById('active-incident-box');
+    if (data.incident) {
+      incBox.innerHTML = `
+        <div style="color: ${data.incident.escalation ? 'var(--red)' : 'var(--yellow)'}; font-weight: bold; margin-bottom: 4px;">
+          ${data.incident.escalation ? '🚨 ESCALATED INCIDENT' : '⚠️ ANOMALY DETECTED'} (${data.incident.severity.toUpperCase()})
+        </div>
+        <div style="font-family: monospace; font-size: 0.75rem; margin-bottom: 6px; color: var(--text-muted);">${data.incident.signature}</div>
+        <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent);">${data.incident.advice || 'Analyzing historical patterns...'}</div>
+      `;
+    } else {
+      incBox.innerHTML = `<em>No active incident. Machine is operating nominally.</em>`;
+    }
+  }
+
+  function drawSparkline(readings) {
+    const svg = document.getElementById('current-sparkline');
+    const vals = readings.map(r => r.i_ma);
+    const min = Math.min(...vals) * 0.9;
+    const max = Math.max(...vals) * 1.1;
+    const range = (max - min) || 1;
+    const width = 300;
+    const height = 50;
+
+    const points = vals.map((v, i) => {
+      const x = (i / (vals.length - 1)) * width;
+      const y = height - ((v - min) / range) * (height - 8) - 4;
+      return `${x},${y}`;
+    }).join(' ');
+
+    svg.innerHTML = `<polyline points="${points}" />`;
+  }
+
+  async function fetchTimeline() {
+    try {
+      const res = await fetch('/api/timeline');
+      if (!res.ok) return;
+      const items = await res.json();
+      const container = document.getElementById('timeline-list');
+      container.innerHTML = items.map(item => {
+        let cls = 'timeline-item';
+        if (item.kind === 'OUTCOME') {
+          cls += item.worked ? ' worked' : ' failed';
+        } else if (item.kind === 'INCIDENT') {
+          cls += ' incident';
+        }
+        return `<div class="${cls}">[${new Date(item.ts * 1000).toLocaleTimeString()}] ${escapeHtml(item.text)}</div>`;
+      }).join('');
+    } catch (e) {}
+  }
+
+  async function fetchRecalled() {
+    try {
+      const res = await fetch('/api/recalled');
+      if (!res.ok) return;
+      const items = await res.json();
+      const container = document.getElementById('recalled-list');
+      if (!items || items.length === 0) {
+        container.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted);">No recalled memories loaded for current state.</div>`;
+        return;
+      }
+      container.innerHTML = items.map(m => `
+        <div class="timeline-item" style="border-left-color: var(--accent);">
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Score: ${m.score}</div>
+          <div>${escapeHtml(m.text)}</div>
+        </div>
+      `).join('');
+    } catch (e) {}
+  }
+
+  async function refreshPatterns() {
+    document.getElementById('patterns-box').innerText = 'Synthesizing historical patterns with Hindsight reflect...';
+    try {
+      const res = await fetch('/api/patterns?refresh=true');
+      const data = await res.json();
+      document.getElementById('patterns-box').innerText = data.patterns;
+    } catch (e) {
+      document.getElementById('patterns-box').innerText = 'Failed to load patterns.';
+    }
+  }
+
+  async function triggerSim(scenario) {
+    await fetch(`/api/sim/${scenario}`, { method: 'POST' });
+    pollState();
+  }
+
+  async function postBadge(worker) {
+    await fetch('/api/ui/badge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worker }),
+    });
+    pollState();
+  }
+
+  async function postFix(fix) {
+    await fetch('/api/ui/fix', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fix }),
+    });
+    pollState();
+  }
+
+  async function postReset() {
+    await fetch('/api/ui/reset', { method: 'POST' });
+    pollState();
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, function(m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    });
+  }
+
+  // Poll loop
+  setInterval(() => {
+    pollState();
+    fetchTimeline();
+    fetchRecalled();
+  }, 1000);
+
+  // Initial load
+  pollState();
+  fetchTimeline();
+  fetchRecalled();
+  refreshPatterns();
+</script>
+
 </body>
 </html>
-
