@@ -110,3 +110,4 @@ cover the same trip thresholds.
   short or identical memory texts may return unexpected results.
 - **LLM advice is not safety-critical**. The agent can fail silently (timeout,
   no key) and the safety interlock continues to operate independently.
+

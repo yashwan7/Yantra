@@ -60,3 +60,4 @@ void loop() {
  * TODO: Render these as buttons on SCREEN_FIX_SELECT and emit:
  *   {"type":"fix","fix":"Lubricated"} via the MCU<->Linux Bridge.
  */
+

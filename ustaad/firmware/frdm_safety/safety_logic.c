@@ -145,3 +145,4 @@ SafetyState safety_get_state(void) {
 int32_t safety_get_baseline_ma(void) {
     return s_baseline_ma;
 }
+

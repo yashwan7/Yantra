@@ -17,3 +17,4 @@
 // MQTT topics (site and machine filled from secrets.h at runtime)
 #define TOPIC_ENV   "ustaad/%s/%s/env"
 #define TOPIC_STATUS "ustaad/%s/%s/status"
+

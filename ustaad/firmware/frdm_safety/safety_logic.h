@@ -43,3 +43,4 @@ SafetyState safety_get_state(void);
 
 /* Get calibrated baseline in mA (valid after CALIBRATING phase) */
 int32_t safety_get_baseline_ma(void);
+

@@ -22,3 +22,4 @@ void uart_write(const char *line);
 
 /* Milliseconds since boot */
 uint32_t millis(void);
+

@@ -41,3 +41,4 @@ the same trip conditions.
 
 The HAL (`hal.h`) must be implemented against the MCUXpresso SDK for the target
 FRDM board. The safety_logic.c / .h files are hardware-agnostic.
+

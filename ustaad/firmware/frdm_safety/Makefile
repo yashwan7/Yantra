@@ -19,3 +19,4 @@ $(TARGET): $(SRCS) safety_logic.h hal.h
 
 clean:
 	rm -f $(TARGET)
+

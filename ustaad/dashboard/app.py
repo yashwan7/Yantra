@@ -13,3 +13,4 @@ async def root():
 @app.get("/api/state")
 async def get_state():
     return {"phase": 0, "note": "stub"}
+
