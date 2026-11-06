@@ -29,7 +29,7 @@ The agent monitors continuous multi-sensor telemetry, deterministically identifi
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-The detailed system interaction graph is documented in [architecture.mmd](file:///Users/yashwanth/Documents/microsoft hackathon/ustaad/docs/architecture.mmd).
+The detailed system interaction graph is documented in [architecture.mmd](docs/architecture.mmd).
 
 ---
 
