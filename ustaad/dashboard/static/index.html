@@ -3,321 +3,963 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yantra — Incident Response Console</title>
+  <title>YANTRA — Autonomous Machine Memory & Deterministic Safety Interlock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f141c;
-      --card-bg: #18202c;
-      --border: #263345;
-      --text: #e2e8f0;
-      --text-muted: #8899ac;
-      --accent: #38bdf8;
-      --accent-hover: #0ea5e9;
-      --green: #22c55e;
-      --green-bg: rgba(34, 197, 94, 0.15);
-      --red: #ef4444;
-      --red-bg: rgba(239, 68, 68, 0.15);
-      --yellow: #f59e0b;
-      --yellow-bg: rgba(245, 158, 11, 0.15);
-      --relay-on: #10b981;
-      --relay-off: #f43f5e;
+      --bg-dark: #070a12;
+      --bg-panel: #0d121f;
+      --bg-card: #121829;
+      --bg-card-hover: #172036;
+      --border: #1e293b;
+      --border-accent: #334155;
+      
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.25);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.25);
+      --crimson: #f43f5e;
+      --crimson-glow: rgba(244, 63, 94, 0.35);
+      --purple: #a855f7;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
     }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f1f5f9;
-        --card-bg: #ffffff;
-        --border: #cbd5e1;
-        --text: #0f172a;
-        --text-muted: #64748b;
-        --accent: #0284c7;
-        --accent-hover: #0369a1;
-      }
-    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", monospace;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.4;
-      padding: 16px;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.04) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding: 16px 24px;
+      overflow-x: hidden;
     }
+
+    /* ── TOP MISSION CONTROL HEADER ───────────────────────────── */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 12px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
     }
-    .brand { display: flex; align-items: baseline; gap: 10px; }
-    .brand h1 { font-size: 1.5rem; letter-spacing: 1px; color: var(--accent); }
-    .badges { display: flex; gap: 8px; font-size: 0.75rem; }
-    .badge {
-      padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);
-      background: var(--card-bg); font-weight: 600;
-    }
-    .badge.green { border-color: var(--green); color: var(--green); }
-    .badge.red { border-color: var(--red); color: var(--red); }
-    .badge.yellow { border-color: var(--yellow); color: var(--yellow); }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1.1fr;
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--cyan), var(--purple), var(--emerald));
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
       gap: 16px;
     }
-    @media (max-width: 1100px) {
-      .grid { grid-template-columns: 1fr; }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(168, 85, 247, 0.2));
+      border: 1px solid var(--cyan);
       border-radius: 8px;
-      padding: 14px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px var(--cyan-glow);
     }
-    .card-title {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+
+    .brand-text h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      background: linear-gradient(90deg, #ffffff, #c7d2fe, var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+    }
+
+    .brand-text .subtext {
+      font-size: 0.72rem;
+      letter-spacing: 1px;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem;
+      font-weight: 600;
+      background: rgba(18, 24, 41, 0.8);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .status-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+
+    .status-pill.live-mem {
+      border-color: rgba(16, 185, 129, 0.5);
+      color: var(--emerald);
+    }
+    .status-pill.live-mem .dot {
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulse 2s infinite;
+    }
+
+    .status-pill.live-groq {
+      border-color: rgba(0, 240, 255, 0.5);
+      color: var(--cyan);
+    }
+    .status-pill.live-groq .dot {
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 2s infinite;
+    }
+
+    .status-pill.relay-engaged {
+      border-color: rgba(16, 185, 129, 0.5);
+      color: var(--emerald);
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .status-pill.relay-engaged .dot {
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    .status-pill.relay-tripped {
+      border-color: rgba(244, 63, 94, 0.8);
+      color: var(--crimson);
+      background: rgba(244, 63, 94, 0.15);
+      animation: blink-border 1s infinite;
+    }
+    .status-pill.relay-tripped .dot {
+      background: var(--crimson);
+      box-shadow: 0 0 10px var(--crimson);
+      animation: pulse 0.8s infinite;
+    }
+
+    .clock-widget {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: right;
+      padding-left: 12px;
+      border-left: 1px solid var(--border);
+    }
+
+    /* ── MAIN DASHBOARD GRID ─────────────────────────────────── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1.05fr 1.1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1280px) {
+      .dashboard-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 900px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+
+    .panel-card:hover {
+      border-color: var(--border-accent);
+    }
+
+    .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* Telemetry metrics */
-    .metric-grid {
+    .card-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      color: var(--cyan);
+    }
+
+    /* ── TELEMETRY HUD GAUGES ────────────────────────────────── */
+    .telemetry-hud {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
-    .metric {
-      background: rgba(0,0,0,0.15);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 8px;
-      text-align: center;
-    }
-    .metric-val { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
-    .metric-lbl { font-size: 0.7rem; color: var(--text-muted); }
 
-    /* Virtual Display (TFT & OLED) */
-    .tft-bezel {
-      background: #000;
-      border: 3px solid #334155;
+    .hud-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 10px;
+      text-align: center;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hud-box:hover {
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .hud-box::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0; height: 2px;
+      background: var(--border);
+    }
+
+    .hud-box.highlight-cyan::after { background: var(--cyan); }
+    .hud-box.highlight-emerald::after { background: var(--emerald); }
+    .hud-box.highlight-amber::after { background: var(--amber); }
+    .hud-box.highlight-crimson::after { background: var(--crimson); }
+
+    .hud-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .hud-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.1;
+    }
+
+    .hud-unit {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-left: 2px;
+    }
+
+    .hud-status-chip {
+      font-size: 0.62rem;
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    /* ── CURRENT TRACE CANVAS ───────────────────────────────── */
+    .chart-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
-      color: #38bdf8;
-      font-family: "Courier New", Courier, monospace;
-      min-height: 160px;
       position: relative;
     }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    canvas#current-canvas {
+      width: 100%;
+      height: 75px;
+      display: block;
+    }
+
+    /* ── HARDWARE VIRTUAL TFT SCREEN ────────────────────────── */
+    .tft-bezel {
+      background: #000000;
+      border: 4px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(0, 240, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 200px;
+    }
+
+    .tft-bezel::before {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 4px;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    .tft-inner {
+      position: relative;
+      z-index: 3;
+    }
+
     .tft-header {
       display: flex;
       justify-content: space-between;
-      border-bottom: 1px dashed #334155;
-      padding-bottom: 4px;
-      margin-bottom: 8px;
-      font-size: 0.8rem;
+      align-items: center;
+      border-bottom: 1px dashed #1e3a5f;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      font-size: 0.72rem;
+      color: #64748b;
     }
-    .tft-title { font-size: 1.05rem; font-weight: bold; margin-bottom: 6px; }
-    .tft-body { font-size: 0.85rem; color: #cbd5e1; white-space: pre-wrap; margin-bottom: 8px; }
-    .tft-oled-bar {
-      margin-top: 10px;
-      padding-top: 6px;
-      border-top: 1px dashed #334155;
+
+    .tft-state-badge {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 0.7rem;
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+    }
+
+    .tft-state-badge.state-alert {
+      background: rgba(244, 63, 94, 0.2);
+      color: var(--crimson);
+      border-color: var(--crimson);
+      animation: pulse 1s infinite;
+    }
+
+    .tft-state-badge.state-verify {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--amber);
+      border-color: var(--amber);
+    }
+
+    .tft-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--cyan);
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .tft-title.alert-title {
+      color: var(--crimson);
+      text-shadow: 0 0 10px var(--crimson-glow);
+    }
+
+    .tft-body {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      line-height: 1.45;
+      min-height: 60px;
+      white-space: pre-wrap;
+    }
+
+    .tft-oled-footer {
+      margin-top: 14px;
+      padding-top: 8px;
+      border-top: 1px dashed #1e3a5f;
       display: flex;
       justify-content: space-between;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #94a3b8;
     }
 
-    /* Buttons */
-    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    button {
+    .progress-bar-container {
+      margin-top: 8px;
+      height: 4px;
       background: #1e293b;
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 500;
-      transition: all 0.15s ease;
+      border-radius: 2px;
+      overflow: hidden;
+      display: none;
     }
-    button:hover { background: #334155; border-color: var(--accent); }
-    button.primary { background: var(--accent); color: #000; font-weight: 700; border: none; }
-    button.primary:hover { background: var(--accent-hover); }
-    button.warn { border-color: var(--yellow); color: var(--yellow); }
-    button.danger { border-color: var(--red); color: var(--red); }
-    button.success { border-color: var(--green); color: var(--green); }
 
-    /* Timeline & memories */
-    .scroll-list { max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .timeline-item {
-      padding: 8px 10px;
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--amber);
+      width: 0%;
+      transition: width 1s linear;
+    }
+
+    /* ── SIMULATOR FAULT INJECTOR ───────────────────────────── */
+    .btn-section-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .button-rack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .cyber-btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
       border-radius: 6px;
-      border-left: 4px solid var(--accent);
-      background: rgba(0,0,0,0.15);
       font-size: 0.78rem;
-      font-family: monospace;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cyber-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0, 240, 255, 0.15);
+    }
+
+    .cyber-btn:active {
+      transform: translateY(1px);
+    }
+
+    .cyber-btn.danger {
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+    }
+    .cyber-btn.danger:hover {
+      background: rgba(244, 63, 94, 0.15);
+      border-color: var(--crimson);
+      box-shadow: 0 0 15px var(--crimson-glow);
+    }
+
+    .cyber-btn.warn {
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+    }
+    .cyber-btn.warn:hover {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--amber);
+      box-shadow: 0 0 15px var(--amber-glow);
+    }
+
+    .cyber-btn.success {
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #a7f3d0;
+    }
+    .cyber-btn.success:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--emerald);
+      box-shadow: 0 0 15px var(--emerald-glow);
+    }
+
+    .cyber-btn.primary-reset {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(16, 185, 129, 0.25));
+      border: 1px solid var(--emerald);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 0 15px var(--emerald-glow);
+      width: 100%;
+      justify-content: center;
+      padding: 10px;
+      font-size: 0.85rem;
+    }
+    .cyber-btn.primary-reset:hover {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(16, 185, 129, 0.35));
+      box-shadow: 0 0 25px var(--emerald-glow);
+    }
+
+    /* ── ADVISORY & RECALLED MEMORIES ────────────────────────── */
+    .incident-advisory-box {
+      background: var(--bg-card);
+      border-left: 4px solid var(--cyan);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 14px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text-main);
+    }
+
+    .incident-advisory-box.active-alarm {
+      border-left-color: var(--crimson);
+      background: rgba(244, 63, 94, 0.08);
+    }
+
+    .incident-advisory-box.active-precursor {
+      border-left-color: var(--amber);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .recalled-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .recalled-card:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+      background: var(--bg-card-hover);
+    }
+
+    .recalled-card-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .recalled-score {
+      color: var(--cyan);
+      font-weight: 700;
+      background: rgba(0, 240, 255, 0.1);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .recalled-text {
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: #e2e8f0;
       white-space: pre-wrap;
     }
-    .timeline-item.worked { border-left-color: var(--green); background: var(--green-bg); }
-    .timeline-item.failed { border-left-color: var(--red); background: var(--red-bg); }
-    .timeline-item.incident { border-left-color: var(--yellow); background: var(--yellow-bg); }
 
-    /* Sparkline svg */
-    .sparkline { width: 100%; height: 50px; stroke: var(--accent); fill: none; stroke-width: 2; margin-top: 8px; }
+    .recalled-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .tag-chip {
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* ── SCROLLABLE LISTS ────────────────────────────────────── */
+    .scrollable-feed {
+      max-height: 380px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 4px;
+    }
+
+    .scrollable-feed::-webkit-scrollbar {
+      width: 5px;
+    }
+    .scrollable-feed::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.2);
+    }
+    .scrollable-feed::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    .scrollable-feed::-webkit-scrollbar-thumb:hover {
+      background: var(--border-accent);
+    }
+
+    /* ── TIMELINE ENTRY CARDS ────────────────────────────────── */
+    .timeline-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--cyan);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.4;
+      transition: all 0.2s ease;
+    }
+
+    .timeline-card:hover {
+      transform: translateX(2px);
+    }
+
+    .timeline-card.worked {
+      border-left-color: var(--emerald);
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, var(--bg-card) 60%);
+    }
+
+    .timeline-card.failed {
+      border-left-color: var(--crimson);
+      background: linear-gradient(90deg, rgba(244, 63, 94, 0.08) 0%, var(--bg-card) 60%);
+    }
+
+    .timeline-card.incident {
+      border-left-color: var(--amber);
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, var(--bg-card) 60%);
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    /* ── REFLECT PATTERNS BOX ────────────────────────────────── */
+    .reflect-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      line-height: 1.5;
+      color: #94a3b8;
+      white-space: pre-wrap;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    /* ── KEYFRAME ANIMATIONS ─────────────────────────────────── */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    @keyframes blink-border {
+      0%, 100% { border-color: var(--crimson); }
+      50% { border-color: rgba(244, 63, 94, 0.2); }
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">
-    <h1>YANTRA</h1>
-    <span style="font-size: 0.9rem; color: var(--text-muted);" id="site-machine">Loading...</span>
+  <div class="brand-section">
+    <div class="logo-container">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2" stroke="#00f0ff" fill="rgba(0,240,255,0.2)"/>
+          <polyline points="2 17 12 22 22 17" stroke="#10b981"/>
+          <polyline points="2 12 12 17 22 12" stroke="#a855f7"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>YANTRA</h1>
+        <div class="subtext">Incident Response Agent • Persistent Memory via Hindsight</div>
+      </div>
+    </div>
   </div>
-  <div class="badges">
-    <span class="badge" id="badge-sim">SIMULATOR</span>
-    <span class="badge" id="badge-mem">HINDSIGHT MEMORY</span>
-    <span class="badge" id="badge-llm">GROQ ADVISOR</span>
-    <span class="badge green" id="badge-relay">RELAY: ON</span>
+
+  <div class="header-badges">
+    <div class="status-pill" id="badge-machine">
+      <span class="dot" style="background: var(--cyan);"></span>
+      <span id="label-machine">SITE1 / PUMP-2</span>
+    </div>
+    <div class="status-pill live-mem" id="badge-mem">
+      <span class="dot"></span>
+      <span id="label-mem">HINDSIGHT: ACTIVE</span>
+    </div>
+    <div class="status-pill live-groq" id="badge-llm">
+      <span class="dot"></span>
+      <span id="label-llm">GROQ: ACTIVE</span>
+    </div>
+    <div class="status-pill relay-engaged" id="badge-relay">
+      <span class="dot"></span>
+      <span id="label-relay">SAFETY RELAY: ENGAGED</span>
+    </div>
+    <div class="clock-widget">
+      <div id="clock-utc">00:00:00 UTC</div>
+      <div id="clock-uptime" style="font-size: 0.68rem; color: var(--text-dim);">UPTIME: 0m</div>
+    </div>
   </div>
 </header>
 
-<div class="grid">
-  <!-- Column 1: Live Telemetry & Hardware Displays -->
+<div class="dashboard-grid">
+  <!-- ════════ COLUMN 1: LIVE SENSORS & PHYSICAL HARDWARE ════════ -->
   <div>
-    <div class="card">
-      <div class="card-title">Live Telemetry & Sensors</div>
-      <div class="metric-grid">
-        <div class="metric">
-          <div class="metric-val" id="val-current">--</div>
-          <div class="metric-lbl">Current (mA)</div>
+    <!-- Live Telemetry Card -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">⚡</span> High-Frequency Telemetry (100 Hz Shunt)
         </div>
-        <div class="metric">
-          <div class="metric-val" id="val-ratio">--</div>
-          <div class="metric-lbl">Current Ratio</div>
+        <span style="font-size: 0.7rem; color: var(--emerald); font-family: 'JetBrains Mono'; font-weight: 600;">● STREAMING</span>
+      </div>
+
+      <div class="telemetry-hud">
+        <div class="hud-box highlight-cyan">
+          <div class="hud-label">Current</div>
+          <div class="hud-val"><span id="val-current">--</span><span class="hud-unit">mA</span></div>
+          <div class="hud-status-chip" id="lbl-current-status">NOMINAL</div>
         </div>
-        <div class="metric">
-          <div class="metric-val" id="val-temp">--</div>
-          <div class="metric-lbl">Temp (°C)</div>
+
+        <div class="hud-box highlight-cyan">
+          <div class="hud-label">Current Ratio</div>
+          <div class="hud-val"><span id="val-ratio">--</span><span class="hud-unit">x</span></div>
+          <div class="hud-status-chip" id="lbl-ratio-status">&le; 1.15x SAFE</div>
         </div>
-        <div class="metric">
-          <div class="metric-val" id="val-slope">--</div>
-          <div class="metric-lbl">Slope (°C/min)</div>
+
+        <div class="hud-box highlight-amber">
+          <div class="hud-label">Temperature</div>
+          <div class="hud-val"><span id="val-temp">--</span><span class="hud-unit">&deg;C</span></div>
+          <div class="hud-status-chip" id="lbl-temp-slope">SLOPE: 0.0/m</div>
         </div>
-        <div class="metric">
-          <div class="metric-val" id="val-gas">--</div>
-          <div class="metric-lbl">Gas Delta</div>
+
+        <div class="hud-box highlight-emerald">
+          <div class="hud-label">Gas Delta</div>
+          <div class="hud-val"><span id="val-gas">--</span><span class="hud-unit">ppm</span></div>
+          <div class="hud-status-chip" id="lbl-gas-status">NORMAL</div>
         </div>
-        <div class="metric">
-          <div class="metric-val" id="val-noise">--</div>
-          <div class="metric-lbl">Noise Spikes/min</div>
+
+        <div class="hud-box highlight-amber">
+          <div class="hud-label">Acoustic Noise</div>
+          <div class="hud-val"><span id="val-noise">--</span><span class="hud-unit">/min</span></div>
+          <div class="hud-status-chip" id="lbl-noise-status">QUIET</div>
+        </div>
+
+        <div class="hud-box highlight-emerald">
+          <div class="hud-label">Enclosure Door</div>
+          <div class="hud-val" id="val-door" style="font-size: 1.1rem; padding-top: 3px;">CLOSED</div>
+          <div class="hud-status-chip" id="lbl-door-status">OPTICAL LDR OK</div>
         </div>
       </div>
-      <svg class="sparkline" id="current-sparkline" viewBox="0 0 300 50"></svg>
+
+      <!-- Realtime Canvas Sparkline -->
+      <div class="chart-container">
+        <div class="chart-header">
+          <span>MOTOR LOAD PROFILE (LAST 60s)</span>
+          <span id="chart-max-indicator">TRIP THRESHOLD: 1.80x</span>
+        </div>
+        <canvas id="current-canvas"></canvas>
+      </div>
     </div>
 
-    <!-- Virtual TFT / OLED Display -->
-    <div class="card">
-      <div class="card-title">Virtual Hardware Screen (TFT / OLED)</div>
+    <!-- Virtual TFT / OLED Microcontroller Screen -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🖥️</span> On-Machine Virtual Screen (2.8" TFT + OLED)
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-dim); font-family: 'JetBrains Mono';">SPI / ILI9341</span>
+      </div>
+
       <div class="tft-bezel">
-        <div class="tft-header">
-          <span id="tft-screen-name">SCREEN: IDLE</span>
-          <span id="tft-risk">RISK: LOW</span>
-        </div>
-        <div class="tft-title" id="tft-title">OPERATIONAL</div>
-        <div class="tft-body" id="tft-body">All sensors within nominal tolerance.</div>
-        <div class="tft-oled-bar">
-          <span id="oled-mach">M: Pump-2</span>
-          <span id="oled-worker">WORKER: --</span>
-          <span id="oled-countdown"></span>
+        <div class="tft-inner">
+          <div class="tft-header">
+            <span id="tft-screen-name">SCREEN: IDLE</span>
+            <span class="tft-state-badge" id="tft-risk-badge">RISK: LOW</span>
+          </div>
+          <div class="tft-title" id="tft-title">OPERATIONAL</div>
+          <div class="tft-body" id="tft-body">All sensors within nominal tolerance. Deterministic safety interlock active.</div>
+          
+          <div class="progress-bar-container" id="tft-progress-bar">
+            <div class="progress-bar-fill" id="tft-progress-fill"></div>
+          </div>
+
+          <div class="tft-oled-footer">
+            <span id="oled-mach">M: Pump-2</span>
+            <span id="oled-worker">WORKER: UNASSIGNED</span>
+            <span id="oled-countdown"></span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Operator Actions -->
-    <div class="card">
-      <div class="card-title">On-Site Operator Controls</div>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">RFID Badge & Fix Submission:</p>
-      <div class="btn-group">
-        <button onclick="postBadge('W-07')">Badge-in (W-07)</button>
-        <button onclick="postBadge('W-03')">Badge-in (W-03)</button>
-        <button onclick="postBadge('W-11')">Badge-in (W-11)</button>
+    <!-- Physical Technician Authentication & Fix Controls -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🪪</span> Physical Operator Console (RFID & Fix)
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono';">MFRC522</span>
       </div>
-      <div class="btn-group" style="margin-top: 10px;">
-        <button onclick="postFix('Lubricated')">Lubricated</button>
-        <button onclick="postFix('Tightened mount')">Tightened mount</button>
-        <button onclick="postFix('Cleared blockage')">Cleared blockage</button>
-        <button onclick="postFix('Replaced part')">Replaced part</button>
+
+      <div class="btn-section-label">1. Scan Technician Badge (Required for Reset):</div>
+      <div class="button-rack">
+        <button class="cyber-btn" onclick="postBadge('W-07')">🪪 Badge-in W-07 (Ravi)</button>
+        <button class="cyber-btn" onclick="postBadge('W-03')">🪪 Badge-in W-03 (Amit)</button>
+        <button class="cyber-btn" onclick="postBadge('W-11')">🪪 Badge-in W-11 (Sarah)</button>
       </div>
-      <div class="btn-group" style="margin-top: 10px;">
-        <button class="primary" onclick="postReset()">Confirm RESET Relay</button>
+
+      <div class="btn-section-label">2. Select Physical Intervention Applied:</div>
+      <div class="button-rack">
+        <button class="cyber-btn" onclick="postFix('Lubricated')">🛢️ Lubricated</button>
+        <button class="cyber-btn" onclick="postFix('Tightened mount')">🔧 Tightened mount</button>
+        <button class="cyber-btn" onclick="postFix('Cleared blockage')">🧹 Cleared blockage</button>
+        <button class="cyber-btn" onclick="postFix('Replaced part')">⚙️ Replaced part</button>
+      </div>
+
+      <div class="btn-section-label">3. Engage Safety Relay (Hardware Interlock):</div>
+      <button class="cyber-btn primary-reset" onclick="postReset()">
+        ⚡ REQUEST RELAY RESET (VERIFY BADGE & RESUME)
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════ COLUMN 2: INCIDENT ADVISORY & SCENARIOS ════════ -->
+  <div>
+    <!-- Interactive Fault Injector -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">⚠️</span> Anomaly Injector (Interactive Demo Arc)
+        </div>
+        <span style="font-size: 0.7rem; color: var(--amber); font-family: 'JetBrains Mono';">SCENARIO CONTROLLER</span>
+      </div>
+
+      <div class="btn-section-label">Simulate Industrial Anomaly:</div>
+      <div class="button-rack">
+        <button class="cyber-btn danger" onclick="triggerSim('stall')">🛑 Motor Stall (Hard Trip)</button>
+        <button class="cyber-btn warn" onclick="triggerSim('precursor')">⚠️ Precursor Pattern</button>
+        <button class="cyber-btn warn" onclick="triggerSim('heat')">🔥 Thermal Runaway</button>
+        <button class="cyber-btn" onclick="triggerSim('gas')">💨 Volatile Gas</button>
+        <button class="cyber-btn" onclick="triggerSim('door')">🚪 Open Enclosure</button>
+      </div>
+
+      <div class="btn-section-label">Closed-Loop Verification Feedback:</div>
+      <div class="button-rack">
+        <button class="cyber-btn success" onclick="triggerSim('fix_works')">✅ Fix Works (Stabilize)</button>
+        <button class="cyber-btn danger" onclick="triggerSim('fix_fails')">❌ Fix Fails (Re-surge)</button>
+        <button class="cyber-btn" onclick="triggerSim('reset')">🔄 Reset Baseline</button>
+      </div>
+    </div>
+
+    <!-- Active Incident Advisory Box -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🧠</span> Active AI Incident Advisory (Groq + Memory)
+        </div>
+        <span style="font-size: 0.7rem; color: var(--cyan); font-family: 'JetBrains Mono';" id="incident-badge">STANDBY</span>
+      </div>
+
+      <div id="active-incident-box" class="incident-advisory-box">
+        <em>Nominal state. Telemetry is healthy. No active advisory.</em>
+      </div>
+    </div>
+
+    <!-- Recalled Past Incidents from Hindsight -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🔍</span> Recalled Episodes from Hindsight Bank
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-dim); font-family: 'JetBrains Mono';" id="recalled-count">0 MATCHES</span>
+      </div>
+
+      <div class="scrollable-feed" id="recalled-list">
+        <div style="font-size: 0.78rem; color: var(--text-muted); font-family: 'JetBrains Mono'; padding: 8px;">
+          No recalled memories for current operational state.
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Column 2: Recalled Memories & Simulator Scenarios -->
+  <!-- ════════ COLUMN 3: PATTERNS & PERSISTENT TIMELINE ════════ -->
   <div>
-    <!-- Simulator Scenarios -->
-    <div class="card">
-      <div class="card-title">Simulator Scenarios</div>
-      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">Inject industrial anomalies:</p>
-      <div class="btn-group">
-        <button class="danger" onclick="triggerSim('stall')">Stall Fault (Cutoff)</button>
-        <button class="warn" onclick="triggerSim('precursor')">Precursor Pattern</button>
-        <button class="warn" onclick="triggerSim('heat')">Overheat Ramp</button>
-        <button onclick="triggerSim('gas')">Gas Spike</button>
-        <button onclick="triggerSim('door')">Open Enclosure</button>
+    <!-- Hindsight Neural Patterns (reflect()) -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">🔮</span> Systemic Insights (Hindsight reflect())
+        </div>
+        <button class="cyber-btn" style="padding: 2px 8px; font-size: 0.68rem;" onclick="refreshPatterns()">Refresh</button>
       </div>
-      <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; margin-bottom: 6px;">Post-Reset Verification Behavior:</p>
-      <div class="btn-group">
-        <button class="success" onclick="triggerSim('fix_works')">Fix Works (Stabilize)</button>
-        <button class="danger" onclick="triggerSim('fix_fails')">Fix Fails (Re-surge)</button>
-        <button onclick="triggerSim('reset')">Reset Baseline</button>
+
+      <div id="patterns-box" class="reflect-box">
+        Synthesizing historical patterns across memories...
       </div>
     </div>
 
-    <!-- Active Incident & Advisory -->
-    <div class="card">
-      <div class="card-title">Active Incident Advisory</div>
-      <div id="active-incident-box" style="font-size: 0.82rem; color: var(--text);">
-        <em>No active incident. Machine is operating nominally.</em>
+    <!-- Verified Outcomes Memory Timeline -->
+    <div class="panel-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">📜</span> Closed-Loop Memory Timeline (Ledger)
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono';" id="timeline-count">0 ENTRIES</span>
       </div>
-    </div>
 
-    <!-- Recalled Memories -->
-    <div class="card">
-      <div class="card-title">Recalled Historical Incidents</div>
-      <div class="scroll-list" id="recalled-list">
-        <div style="font-size: 0.8rem; color: var(--text-muted);">No recalled memories loaded for current state.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Column 3: Patterns & Memory Timeline -->
-  <div>
-    <!-- Reflect Patterns -->
-    <div class="card">
-      <div class="card-title">
-        <span>Persistent Patterns (Reflect)</span>
-        <button style="padding: 2px 6px; font-size: 0.7rem;" onclick="refreshPatterns()">Refresh</button>
-      </div>
-      <div id="patterns-box" style="font-size: 0.8rem; white-space: pre-wrap; font-family: monospace; color: #94a3b8; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 6px;">
-        Loading patterns synthesis...
-      </div>
-    </div>
-
-    <!-- Memory Timeline -->
-    <div class="card">
-      <div class="card-title">Closed-Loop Memory Timeline</div>
-      <div class="scroll-list" id="timeline-list">
-        <!-- Timeline items -->
+      <div class="scrollable-feed" id="timeline-list">
+        <!-- Timeline items will be injected here -->
       </div>
     </div>
   </div>
@@ -325,6 +967,65 @@
 
 <script>
   let lastTimelineCount = 0;
+  let chartHistory = [];
+  const canvas = document.getElementById('current-canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Fix high DPI canvas
+  function setupCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    ctx.scale(2, 2);
+  }
+
+  // Draw smooth load sparkline
+  function drawChart(readings) {
+    if (!readings || readings.length === 0) return;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    const values = readings.map(r => r.ratio || 1.0);
+    const maxVal = Math.max(2.2, ...values);
+    const minVal = 0.8;
+
+    // Draw trip threshold line at 1.8x
+    const tripY = h - ((1.8 - minVal) / (maxVal - minVal)) * (h - 10) - 5;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(244, 63, 94, 0.4)';
+    ctx.setLineDash([4, 4]);
+    ctx.moveTo(0, tripY);
+    ctx.lineTo(w, tripY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Path for telemetry line
+    ctx.beginPath();
+    const step = w / (values.length - 1 || 1);
+    values.forEach((v, i) => {
+      const x = i * step;
+      const y = h - ((v - minVal) / (maxVal - minVal)) * (h - 10) - 5;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+
+    const isCutoff = values[values.length - 1] > 1.4;
+    ctx.strokeStyle = isCutoff ? '#f43f5e' : '#00f0ff';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = isCutoff ? 'rgba(244,63,94,0.5)' : 'rgba(0,240,255,0.5)';
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Live real-time clock
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock-utc').innerText = now.toTimeString().split(' ')[0] + " LOCAL";
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
 
   async function pollState() {
     try {
@@ -338,173 +1039,266 @@
   }
 
   function renderState(data) {
-    document.getElementById('site-machine').innerText = `${data.site} / ${data.machine_id}`;
+    document.getElementById('label-machine').innerText = `${data.site.toUpperCase()} / ${data.machine_id.toUpperCase()}`;
     
     // Status badges
-    const relayEl = document.getElementById('badge-relay');
+    const relayPill = document.getElementById('badge-relay');
+    const relayLbl = document.getElementById('label-relay');
     if (data.latest_reading.relay === 'OFF' || data.latest_reading.cutoff_event) {
-      relayEl.className = 'badge red';
-      relayEl.innerText = 'RELAY: TRIPPED (OFF)';
+      relayPill.className = 'status-pill relay-tripped';
+      relayLbl.innerText = 'RELAY: TRIPPED (HARD CUTOFF)';
     } else {
-      relayEl.className = 'badge green';
-      relayEl.innerText = 'RELAY: ENGAGED (ON)';
+      relayPill.className = 'status-pill relay-engaged';
+      relayLbl.innerText = 'RELAY: ENGAGED (NOMINAL)';
     }
 
-    document.getElementById('badge-mem').className = data.hindsight_enabled ? 'badge green' : 'badge';
-    document.getElementById('badge-mem').innerText = data.hindsight_enabled ? 'HINDSIGHT: LIVE' : 'MEMORY: LOCAL';
+    const memPill = document.getElementById('badge-mem');
+    memPill.className = data.hindsight_enabled ? 'status-pill live-mem' : 'status-pill';
+    document.getElementById('label-mem').innerText = data.hindsight_enabled ? 'HINDSIGHT: CLOUD MEMORY ACTIVE' : 'HINDSIGHT: LOCAL FALLBACK';
 
-    document.getElementById('badge-llm').className = data.groq_enabled ? 'badge green' : 'badge';
-    document.getElementById('badge-llm').innerText = data.groq_enabled ? 'GROQ: LIVE' : 'LLM: TEMPLATE';
+    const groqPill = document.getElementById('badge-llm');
+    groqPill.className = data.groq_enabled ? 'status-pill live-groq' : 'status-pill';
+    document.getElementById('label-llm').innerText = data.groq_enabled ? 'GROQ: OSS-120B ADVISOR' : 'GROQ: TEMPLATE ADVISOR';
 
-    // Telemetry
-    document.getElementById('val-current').innerText = data.latest_reading.i_ma ? data.latest_reading.i_ma.toFixed(1) : '--';
-    document.getElementById('val-ratio').innerText = data.features.current_ratio ? data.features.current_ratio.toFixed(2) + 'x' : '--';
-    document.getElementById('val-temp').innerText = data.latest_reading.temp_c ? data.latest_reading.temp_c.toFixed(1) : '--';
-    document.getElementById('val-slope').innerText = data.features.temp_slope_c_per_min ? (data.features.temp_slope_c_per_min > 0 ? '+' : '') + data.features.temp_slope_c_per_min.toFixed(2) : '--';
-    document.getElementById('val-gas').innerText = data.features.gas_delta ? data.features.gas_delta.toFixed(0) : '0';
-    document.getElementById('val-noise').innerText = data.features.noise_per_min ? data.features.noise_per_min.toFixed(1) : '0';
+    // Telemetry Box Values
+    const curMa = data.latest_reading.i_ma ? data.latest_reading.i_ma.toFixed(1) : '--';
+    const curRatio = data.latest_reading.ratio ? data.latest_reading.ratio.toFixed(2) : '--';
+    const tempC = data.latest_reading.temp_c ? data.latest_reading.temp_c.toFixed(1) : '--';
+    const tempSlope = data.features.temp_slope_c_per_min ? data.features.temp_slope_c_per_min.toFixed(1) : '0.0';
+    const gasDelta = data.features.gas_delta ? data.features.gas_delta.toFixed(0) : '0';
+    const noiseMin = data.features.noise_per_min ? data.features.noise_per_min.toFixed(1) : '0.0';
 
-    // Sparkline
-    if (data.recent_readings && data.recent_readings.length > 1) {
-      drawSparkline(data.recent_readings);
+    document.getElementById('val-current').innerText = curMa;
+    document.getElementById('val-ratio').innerText = curRatio;
+    document.getElementById('val-temp').innerText = tempC;
+    document.getElementById('val-gas').innerText = gasDelta;
+    document.getElementById('val-noise').innerText = noiseMin;
+    
+    const doorOpen = data.latest_reading.door_open;
+    const doorEl = document.getElementById('val-door');
+    doorEl.innerText = doorOpen ? 'OPEN' : 'CLOSED';
+    doorEl.style.color = doorOpen ? 'var(--amber)' : 'var(--emerald)';
+
+    // Ratio badge evaluation
+    const ratioStatus = document.getElementById('lbl-ratio-status');
+    if (parseFloat(curRatio) >= 1.8) {
+      ratioStatus.innerText = 'OVERCURRENT TRIP';
+      ratioStatus.style.color = 'var(--crimson)';
+    } else if (parseFloat(curRatio) >= 1.25) {
+      ratioStatus.innerText = 'PRECURSOR ELEVATED';
+      ratioStatus.style.color = 'var(--amber)';
+    } else {
+      ratioStatus.innerText = '≤ 1.15x SAFE';
+      ratioStatus.style.color = 'var(--emerald)';
     }
 
-    // TFT Screen
-    document.getElementById('tft-screen-name').innerText = `SCREEN: ${data.display.screen.toUpperCase()}`;
-    document.getElementById('tft-risk').innerText = `RISK: ${data.display.risk}`;
-    document.getElementById('tft-title').innerText = data.display.title || 'OPERATIONAL';
-    document.getElementById('tft-body').innerText = data.display.body || '';
+    document.getElementById('lbl-temp-slope').innerText = `SLOPE: ${tempSlope > 0 ? '+' : ''}${tempSlope}°C/m`;
+    document.getElementById('lbl-noise-status').innerText = parseFloat(noiseMin) > 3 ? 'SPIKES DETECTED' : 'QUIET';
+
+    // Sparkline chart
+    if (data.recent_readings && data.recent_readings.length > 0) {
+      drawChart(data.recent_readings);
+    }
+
+    // Virtual TFT / OLED screen
+    const disp = data.display;
+    const tftScreen = document.getElementById('tft-screen-name');
+    const tftTitle = document.getElementById('tft-title');
+    const tftBody = document.getElementById('tft-body');
+    const tftRisk = document.getElementById('tft-risk-badge');
+
+    tftScreen.innerText = `SCREEN: ${disp.screen.toUpperCase()}`;
+    tftTitle.innerText = disp.title || 'OPERATIONAL';
+    tftBody.innerText = disp.body || 'All sensors within nominal tolerance.';
+
+    tftRisk.innerText = `RISK: ${disp.risk}`;
+    if (disp.risk === 'HIGH') {
+      tftRisk.className = 'tft-state-badge state-alert';
+      tftTitle.className = 'tft-title alert-title';
+    } else if (disp.risk === 'MEDIUM') {
+      tftRisk.className = 'tft-state-badge state-verify';
+      tftTitle.className = 'tft-title';
+    } else {
+      tftRisk.className = 'tft-state-badge';
+      tftTitle.className = 'tft-title';
+    }
+
     document.getElementById('oled-mach').innerText = `M: ${data.machine_id}`;
-    document.getElementById('oled-worker').innerText = `WORKER: ${data.display.worker || '--'}`;
-    document.getElementById('oled-countdown').innerText = data.display.countdown_s ? `WAIT: ${data.display.countdown_s}s` : '';
+    document.getElementById('oled-worker').innerText = `TECH: ${disp.worker || 'UNASSIGNED'}`;
+    
+    // Countdown
+    const countdownEl = document.getElementById('oled-countdown');
+    const pBar = document.getElementById('tft-progress-bar');
+    const pFill = document.getElementById('tft-progress-fill');
+    if (disp.countdown_s > 0) {
+      countdownEl.innerText = `VERIFYING: ${disp.countdown_s}s`;
+      pBar.style.display = 'block';
+      pFill.style.width = `${Math.min(100, (1 - disp.countdown_s / 90) * 100)}%`;
+    } else {
+      countdownEl.innerText = '';
+      pBar.style.display = 'none';
+    }
 
-    // Active incident box
+    // Active Incident Box
     const incBox = document.getElementById('active-incident-box');
+    const incBadge = document.getElementById('incident-badge');
     if (data.incident) {
+      incBadge.innerText = `ACTIVE (${data.incident.severity.toUpperCase()})`;
+      incBadge.style.color = 'var(--crimson)';
+      incBox.className = 'incident-advisory-box active-alarm';
       incBox.innerHTML = `
-        <div style="color: ${data.incident.escalation ? 'var(--red)' : 'var(--yellow)'}; font-weight: bold; margin-bottom: 4px;">
-          ${data.incident.escalation ? '🚨 ESCALATED INCIDENT' : '⚠️ ANOMALY DETECTED'} (${data.incident.severity.toUpperCase()})
-        </div>
-        <div style="font-family: monospace; font-size: 0.75rem; margin-bottom: 6px; color: var(--text-muted);">${data.incident.signature}</div>
-        <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent);">${data.incident.advice || 'Analyzing historical patterns...'}</div>
+        <div style="font-weight: 700; color: var(--crimson); margin-bottom: 4px;">FAULT SIGNATURE DETECTED:</div>
+        <div style="font-family: monospace; font-size: 0.75rem; color: #cbd5e1; margin-bottom: 8px;">${data.incident.signature}</div>
+        <div style="font-weight: 600; color: var(--cyan); margin-bottom: 2px;">ADVISORY RESOLUTION:</div>
+        <div>${data.incident.advice}</div>
       `;
     } else {
-      incBox.innerHTML = `<em>No active incident. Machine is operating nominally.</em>`;
+      incBadge.innerText = 'STANDBY';
+      incBadge.style.color = 'var(--text-dim)';
+      incBox.className = 'incident-advisory-box';
+      incBox.innerHTML = `<em>Nominal state. Telemetry is healthy. No active advisory.</em>`;
     }
+
+    // Poll timeline and recalled
+    pollTimeline();
+    pollRecalled();
   }
 
-  function drawSparkline(readings) {
-    const svg = document.getElementById('current-sparkline');
-    const vals = readings.map(r => r.i_ma);
-    const min = Math.min(...vals) * 0.9;
-    const max = Math.max(...vals) * 1.1;
-    const range = (max - min) || 1;
-    const width = 300;
-    const height = 50;
-
-    const points = vals.map((v, i) => {
-      const x = (i / (vals.length - 1)) * width;
-      const y = height - ((v - min) / range) * (height - 8) - 4;
-      return `${x},${y}`;
-    }).join(' ');
-
-    svg.innerHTML = `<polyline points="${points}" />`;
-  }
-
-  async function fetchTimeline() {
+  async function pollTimeline() {
     try {
       const res = await fetch('/api/timeline');
       if (!res.ok) return;
       const items = await res.json();
-      const container = document.getElementById('timeline-list');
-      container.innerHTML = items.map(item => {
-        let cls = 'timeline-item';
-        if (item.kind === 'OUTCOME') {
-          cls += item.worked ? ' worked' : ' failed';
-        } else if (item.kind === 'INCIDENT') {
-          cls += ' incident';
-        }
-        return `<div class="${cls}">[${new Date(item.ts * 1000).toLocaleTimeString()}] ${escapeHtml(item.text)}</div>`;
-      }).join('');
-    } catch (e) {}
+      document.getElementById('timeline-count').innerText = `${items.length} EVENTS`;
+
+      if (items.length !== lastTimelineCount) {
+        lastTimelineCount = items.length;
+        const container = document.getElementById('timeline-list');
+        container.innerHTML = '';
+        items.forEach(it => {
+          const div = document.createElement('div');
+          let cls = 'timeline-card';
+          let icon = '⚡';
+          if (it.kind === 'OUTCOME') {
+            cls += it.worked ? ' worked' : ' failed';
+            icon = it.worked ? '✅ [WORKED]' : '❌ [FAILED]';
+          } else if (it.kind === 'INCIDENT') {
+            cls += ' incident';
+            icon = '🚨 [INCIDENT]';
+          } else if (it.kind === 'FIX') {
+            icon = '🔧 [FIX]';
+          }
+
+          const dateStr = new Date(it.ts * 1000).toLocaleTimeString();
+          div.className = cls;
+          div.innerHTML = `
+            <div class="timeline-header">
+              <span>${icon} ${it.kind}</span>
+              <span>${dateStr}</span>
+            </div>
+            <div>${it.text}</div>
+          `;
+          container.appendChild(div);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  async function fetchRecalled() {
+  async function pollRecalled() {
     try {
       const res = await fetch('/api/recalled');
       if (!res.ok) return;
       const items = await res.json();
+      document.getElementById('recalled-count').innerText = `${items.length} MATCHES`;
+
       const container = document.getElementById('recalled-list');
-      if (!items || items.length === 0) {
-        container.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted);">No recalled memories loaded for current state.</div>`;
+      if (items.length === 0) {
+        container.innerHTML = `<div style="font-size: 0.78rem; color: var(--text-muted); font-family: 'JetBrains Mono'; padding: 8px;">No recalled memories for current operational state.</div>`;
         return;
       }
-      container.innerHTML = items.map(m => `
-        <div class="timeline-item" style="border-left-color: var(--accent);">
-          <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Score: ${m.score}</div>
-          <div>${escapeHtml(m.text)}</div>
-        </div>
-      `).join('');
-    } catch (e) {}
+
+      container.innerHTML = '';
+      items.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'recalled-card';
+        const tagsHtml = (m.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('');
+        div.innerHTML = `
+          <div class="recalled-card-header">
+            <span>MEM ID: ${m.id.substring(0, 8)}...</span>
+            <span class="recalled-score">SCORE: ${m.score}</span>
+          </div>
+          <div class="recalled-text">${m.text}</div>
+          <div class="recalled-tags">${tagsHtml}</div>
+        `;
+        container.appendChild(div);
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function refreshPatterns() {
-    document.getElementById('patterns-box').innerText = 'Synthesizing historical patterns with Hindsight reflect...';
+    const box = document.getElementById('patterns-box');
+    box.innerText = "Synthesizing systemic patterns from Hindsight reflect()...";
     try {
       const res = await fetch('/api/patterns?refresh=true');
       const data = await res.json();
-      document.getElementById('patterns-box').innerText = data.patterns;
+      box.innerText = data.patterns || "No patterns synthesized yet.";
     } catch (e) {
-      document.getElementById('patterns-box').innerText = 'Failed to load patterns.';
+      box.innerText = "Failed to load patterns.";
     }
   }
 
   async function triggerSim(scenario) {
-    await fetch(`/api/sim/${scenario}`, { method: 'POST' });
-    pollState();
+    try {
+      await fetch(`/api/sim/${scenario}`, { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function postBadge(worker) {
-    await fetch('/api/ui/badge', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ worker }),
-    });
-    pollState();
+    try {
+      await fetch('/api/ui/badge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function postFix(fix) {
-    await fetch('/api/ui/fix', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fix }),
-    });
-    pollState();
+    try {
+      await fetch('/api/ui/fix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fix }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function postReset() {
-    await fetch('/api/ui/reset', { method: 'POST' });
-    pollState();
+    try {
+      await fetch('/api/ui/reset', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  function escapeHtml(text) {
-    return text.replace(/[&<>"']/g, function(m) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-    });
-  }
-
-  // Poll loop
-  setInterval(() => {
+  // Initialize
+  window.addEventListener('DOMContentLoaded', () => {
+    setupCanvas();
     pollState();
-    fetchTimeline();
-    fetchRecalled();
-  }, 1000);
-
-  // Initial load
-  pollState();
-  fetchTimeline();
-  fetchRecalled();
-  refreshPatterns();
+    refreshPatterns();
+    setInterval(pollState, 1000);
+  });
+  window.addEventListener('resize', setupCanvas);
 </script>
 
 </body>
