@@ -148,3 +148,4 @@ def test_learning_arc_first_and_second_incident(tmp_path: Path):
     # Incident 2 must recall Incident 1 and report 1 WORKED, 0 FAILED!
     assert "Lubricated" in inc2.advice
     assert "1 WORKED, 0 FAILED" in inc2.advice
+

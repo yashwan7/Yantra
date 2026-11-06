@@ -98,7 +98,55 @@ synthesis = client.reflect(
 )
 ```
 
-> **Live vs Local Fallback:** When `HINDSIGHT_API_KEY` is present in `.env`, Ustaad connects directly to Hindsight cloud/self-hosted instances. When missing or `SIMULATOR=1`, Ustaad seamlessly falls back to `LocalMemory` (`data/local_memory.jsonl`) using token-overlap similarity scoring.
+> **Live Verification Status:** Verified against live **Hindsight Cloud** (`https://api.hindsight.vectorize.io`) and **Groq** (`openai/gpt-oss-120b`). Retain, recall, and reflect round-trips pass live. When keys are omitted, Ustaad seamlessly falls back to `LocalMemory` (`data/local_memory_<bank_id>.jsonl`) with token-overlap similarity scoring and `MockLLM`/template advice.
+
+---
+
+## Verification & Testing Commands
+
+To run all automated verification suites:
+
+```bash
+# 1. Run live Hindsight Cloud smoke test (round-trip retain -> recall -> reflect)
+python scripts/hindsight_smoke_test.py
+
+# 2. Run the full 3-incident demonstration arc with an isolated fresh bank
+python scripts/run_demo.py --fresh
+
+# 3. Run all Python unit and integration tests (55 tests)
+pytest
+
+# 4. Compile and run the C safety firmware test suite (with ASan & UBSan)
+make -C firmware/frdm_safety test
+```
+
+---
+
+## Demonstration Script (The Learning Arc)
+
+The demonstration showcases a three-stage learning progression:
+1. **Incident 1 (Cold Start):**
+   * An initial overcurrent trip occurs on `Pump-2`.
+   * Hindsight memory has no prior incidents for this bank.
+   * Agent issues strictly generic advice: *"Anomaly detected on Pump-2. No prior matching incidents in memory. Recommend immediate visual inspection..."*
+   * Technician W-07 badges in via RFID, applies fix `"Lubricated"`, and requests a reset.
+   * Telemetry stabilizes during verification. The agent retains the verified `WORKED` outcome to Hindsight and records it in the bank ledger.
+2. **Incident 2 (Recurrent Pattern):**
+   * The same stall/drag fault recurs on `Pump-2`.
+   * Hindsight recalls the previous incident and verified outcome.
+   * The agent provides targeted memory-grounded guidance: *"Bearing lubrication resolved this exact condition in 100% of recorded cases (1/1 success)..."*
+   * Displays step-by-step procedure and required badge-in protocol.
+3. **Incident 3 (Early Warning Precursor):**
+   * Weak precursors emerge: current ratio elevates to 1.25x baseline and acoustic noise spikes rise.
+   * Ustaad recognizes the signature that preceded previous hard faults and fires an **EARLY WARNING** alert on the screen *before* the electrical safety relay ever trips.
+
+---
+
+## Deliverables & Documentation
+
+- **Technical Article:** Ready-to-publish 1,000-word deep-dive in [`docs/article.md`](docs/article.md) detailing the sensor-signature-to-text transformation and closed-loop outcome verification.
+- **LinkedIn Post:** Ready-to-post summary (<800 chars) in [`docs/linkedin_post.md`](docs/linkedin_post.md).
+- **System Diagram:** Mermaid architecture graph in [`docs/architecture.mmd`](docs/architecture.mmd).
 
 ---
 

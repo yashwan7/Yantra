@@ -261,8 +261,13 @@ class HindsightMemory:
                     )
                 )
             return results[:limit]
-        except Exception:
-            logger.exception("HindsightMemory recall error")
+        except Exception as exc:
+            # Cold start on brand-new bank raises 404 NotFound until first retain
+            err_str = str(exc)
+            if "404" in err_str or "not found" in err_str.lower():
+                logger.info("Bank '%s' not yet created in Hindsight; cold start with 0 memories", self.bank_id)
+            else:
+                logger.exception("HindsightMemory recall error: %s", exc)
             return []
 
     def reflect(self, question: str) -> str:

@@ -202,7 +202,7 @@ class LlmAdvisor:
 
                 # If no tool calls, return final response
                 if not msg.tool_calls:
-                    return msg.content or build_template_advice(machine_id, signature, recalled, is_precursor)
+                    return msg.content or build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor, ledger=ledger)
 
                 # Process tool calls
                 if not registry:
@@ -231,7 +231,7 @@ class LlmAdvisor:
 
             except Exception as e:
                 logger.warning("Groq completion failed on iteration %d: %s. Using template fallback.", iteration, e)
-                return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor)
+                return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor, ledger=ledger)
 
-        return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor)
+        return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor, ledger=ledger)
 
