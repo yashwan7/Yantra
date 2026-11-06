@@ -294,3 +294,4 @@ def get_memory_store(force_local: bool = False) -> MemoryStore:
     store = LocalMemory()
     _memory_singleton = store
     return store
+

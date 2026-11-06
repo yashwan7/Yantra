@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
+from agent.ledger import get_outcome_ledger
 from agent.memory import MemoryStore, get_memory_store
 from agent.templates import (
     build_fix_memory,
@@ -26,9 +27,11 @@ from agent.templates import (
 logger = logging.getLogger(__name__)
 
 
-def seed_memory(store: MemoryStore) -> int:
-    """Seed synthetic history into the memory store. Returns count of entries."""
-    logger.info("Seeding historical incidents into memory store...")
+def seed_memory(store: MemoryStore, ledger_path: str = "data/outcome_ledger.json") -> int:
+    """Seed synthetic history into the memory store and outcome ledger. Returns count of entries."""
+    logger.info("Seeding historical incidents into memory store and ledger...")
+    ledger = get_outcome_ledger(ledger_path)
+    ledger.clear()
 
     now = datetime.utcnow()
     entries_count = 0
@@ -45,9 +48,15 @@ def seed_memory(store: MemoryStore) -> int:
         worked: bool,
         evidence: str,
         tags: list[str] | None = None,
+        is_precursor: bool = False,
     ):
         nonlocal entries_count
-        base_tags = [f"machine:{machine_id}", f"worker:{worker}"]
+        base_tags = [
+            f"machine:{machine_id}",
+            f"worker:{worker}",
+            f"fix:{fix.lower()}",
+            f"result:{'worked' if worked else 'failed'}",
+        ]
         if tags:
             base_tags.extend(tags)
 
@@ -55,9 +64,23 @@ def seed_memory(store: MemoryStore) -> int:
         fix_text = build_fix_memory(machine_id, dt + timedelta(minutes=15), worker, root_cause, fix)
         out_text = build_outcome_memory(machine_id, dt + timedelta(minutes=75), fix, worked, evidence)
 
-        store.retain(inc_text, timestamp=dt, tags=base_tags)
-        store.retain(fix_text, timestamp=dt + timedelta(minutes=15), tags=base_tags)
-        store.retain(out_text, timestamp=dt + timedelta(minutes=75), tags=base_tags)
+        metadata_common = {
+            "machine": machine_id,
+            "worker": worker,
+            "fix": fix,
+            "result": "worked" if worked else "failed",
+        }
+
+        store.retain(inc_text, timestamp=dt, tags=base_tags, metadata=metadata_common)
+        store.retain(fix_text, timestamp=dt + timedelta(minutes=15), tags=base_tags, metadata=metadata_common)
+        store.retain(out_text, timestamp=dt + timedelta(minutes=75), tags=base_tags, metadata=metadata_common)
+
+        # Record into deterministic ledger
+        ts_base = dt.timestamp()
+        ledger.record_incident(machine_id, sig, ts_base, is_precursor=is_precursor, worker=worker)
+        ledger.record_fix(machine_id, fix, worker, ts_base + 900, signature=sig)
+        ledger.record_outcome(machine_id, fix, worked, ts_base + 4500, evidence, worker=worker)
+
         entries_count += 3
 
     # ── Incidents 1 & 2: Pump-2 Bearing Lubrication Worked ─────────────────────
@@ -80,20 +103,29 @@ def seed_memory(store: MemoryStore) -> int:
     # ── Incident 3: Pump-2 Lubrication FAILED 3rd time; mount tightened WORKED ──
     dt3 = now - timedelta(days=22, hours=6)
     sig3 = "Pump-2: current 1.6x baseline, temperature rising (+2.4 C/min), gas normal, 7 noise spikes/min, panel closed, 95 min after startup."
-    # First lubricated, failed
+    ts3 = dt3.timestamp()
     inc3 = build_incident_memory("Pump-2", dt3, "high", sig3, "Overcurrent cutoff triggered", "W-07")
     fix3a = build_fix_memory("Pump-2", dt3 + timedelta(minutes=10), "W-07", "Assumed bearing wear", "Lubricated")
     out3a = build_outcome_memory("Pump-2", dt3 + timedelta(minutes=40), "Lubricated", False, "current surged back to 1.7x baseline within 20 minutes")
-    store.retain(inc3, timestamp=dt3, tags=["machine:Pump-2", "worker:W-07"])
-    store.retain(fix3a, timestamp=dt3 + timedelta(minutes=10), tags=["machine:Pump-2", "worker:W-07"])
-    store.retain(out3a, timestamp=dt3 + timedelta(minutes=40), tags=["machine:Pump-2", "worker:W-07"])
+    tags3a = ["machine:Pump-2", "worker:W-07", "fix:lubricated", "result:failed"]
+    meta3a = {"machine": "Pump-2", "worker": "W-07", "fix": "Lubricated", "result": "failed"}
+    store.retain(inc3, timestamp=dt3, tags=tags3a, metadata=meta3a)
+    store.retain(fix3a, timestamp=dt3 + timedelta(minutes=10), tags=tags3a, metadata=meta3a)
+    store.retain(out3a, timestamp=dt3 + timedelta(minutes=40), tags=tags3a, metadata=meta3a)
+    ledger.record_incident("Pump-2", sig3, ts3, worker="W-07")
+    ledger.record_fix("Pump-2", "Lubricated", "W-07", ts3 + 600, signature=sig3)
+    ledger.record_outcome("Pump-2", "Lubricated", False, ts3 + 2400, "current surged back to 1.7x baseline within 20 minutes", worker="W-07")
     entries_count += 3
 
     # Then mount tightened, worked
     fix3b = build_fix_memory("Pump-2", dt3 + timedelta(minutes=50), "W-11", "Loose mounting bolts causing rotor misalignment", "Tightened mount")
     out3b = build_outcome_memory("Pump-2", dt3 + timedelta(minutes=110), "Tightened mount", True, "vibration zeroed and current steady at 1.01x baseline")
-    store.retain(fix3b, timestamp=dt3 + timedelta(minutes=50), tags=["machine:Pump-2", "worker:W-11"])
-    store.retain(out3b, timestamp=dt3 + timedelta(minutes=110), tags=["machine:Pump-2", "worker:W-11"])
+    tags3b = ["machine:Pump-2", "worker:W-11", "fix:tightened mount", "result:worked"]
+    meta3b = {"machine": "Pump-2", "worker": "W-11", "fix": "Tightened mount", "result": "worked"}
+    store.retain(fix3b, timestamp=dt3 + timedelta(minutes=50), tags=tags3b, metadata=meta3b)
+    store.retain(out3b, timestamp=dt3 + timedelta(minutes=110), tags=tags3b, metadata=meta3b)
+    ledger.record_fix("Pump-2", "Tightened mount", "W-11", ts3 + 3000, signature=sig3)
+    ledger.record_outcome("Pump-2", "Tightened mount", True, ts3 + 6600, "vibration zeroed and current steady at 1.01x baseline", worker="W-11")
     entries_count += 2
 
     # ── Incident 4: False Alarm (door opened during inspection) ────────────────
@@ -155,3 +187,4 @@ def seed_memory(store: MemoryStore) -> int:
 if __name__ == "__main__":
     store = get_memory_store()
     seed_memory(store)
+

@@ -50,3 +50,4 @@ def test_local_memory_reflect(tmp_path: Path):
     summary = store.reflect("What are the outcomes?")
     assert "1 worked" in summary
     assert "Lubricated" in summary
+

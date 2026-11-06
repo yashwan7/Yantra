@@ -28,6 +28,7 @@ from agent.anomaly import classify
 from agent.closed_loop import ClosedLoopController
 from agent.config import get_settings
 from agent.features import compute_features
+from agent.ledger import OutcomeLedger, get_outcome_ledger
 from agent.memory import LocalMemory, get_memory_store
 from agent.models import (
     AnomalyLevel,
@@ -53,10 +54,18 @@ def run_demo(fresh: bool = False):
     controller.cfg.verify_seconds = 4  # accelerated verification for demo
 
     mem_path = Path("data/demo_memory.jsonl")
+    ledger_path = Path("data/demo_ledger.json")
+
+    ledger = OutcomeLedger(filepath=ledger_path)
+    # Patch global ledger singleton for this process
+    import agent.ledger as l_mod
+    l_mod._ledger_instance = ledger
+
     if fresh or not mem_path.exists():
         if mem_path.exists():
             mem_path.unlink()
-        print("[INFO] Clean memory bank initialized (fresh demo mode).")
+        ledger.clear()
+        print("[INFO] Clean memory bank and outcome ledger initialized (fresh demo mode).")
     
     store = LocalMemory(filepath=mem_path)
     controller.store = store

@@ -74,11 +74,12 @@ def main() -> None:
     state = SharedState()
     set_shared_state(state)
 
-    # Initialize memory store and seed if empty
+    # Initialize memory store and outcome ledger, seed if empty
     store = get_memory_store()
     local_mem_file = Path("data/local_memory.jsonl")
-    if not local_mem_file.exists() or local_mem_file.stat().st_size == 0:
-        logger.info("Local memory empty, seeding initial 60-day history...")
+    ledger_file = Path("data/outcome_ledger.json")
+    if not local_mem_file.exists() or local_mem_file.stat().st_size == 0 or not ledger_file.exists():
+        logger.info("Local memory or outcome ledger empty, seeding initial 60-day history...")
         seed_memory(store)
 
     # Start Ingest sources

@@ -210,3 +210,4 @@ class ToolRegistry:
         except Exception as e:
             logger.exception("Error executing tool %s", tool_name)
             return json.dumps({"error": str(e)})
+

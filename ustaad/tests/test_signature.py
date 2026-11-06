@@ -68,3 +68,4 @@ def test_signature_buckets():
         "gas elevated, 8 noise spikes/min, panel open, 45 min after startup."
     )
     assert sig == expected
+

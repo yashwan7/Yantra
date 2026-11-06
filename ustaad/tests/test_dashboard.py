@@ -62,3 +62,4 @@ def test_ui_events_endpoints(client: TestClient):
 
     res_r = client.post("/api/ui/reset")
     assert res_r.status_code == 200
+

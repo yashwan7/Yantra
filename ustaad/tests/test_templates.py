@@ -69,3 +69,4 @@ def test_outcome_memory_format():
         evidence="current spiked again to 1.7x.",
     )
     assert 'Fix "Lubricated" FAILED. current spiked again to 1.7x.' in text_fail
+

@@ -53,3 +53,4 @@ def test_gas_scenario():
     sim_mod.set_scenario("gas")
     r = sim_mod.next_reading("Pump-2")
     assert r.gas_raw > 550
+

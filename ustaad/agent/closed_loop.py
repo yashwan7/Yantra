@@ -17,6 +17,7 @@ from typing import Callable, Optional
 
 from agent.anomaly import classify, severity_label
 from agent.config import get_settings
+from agent.ledger import get_outcome_ledger
 from agent.llm import LlmAdvisor, build_template_advice
 from agent.memory import get_memory_store
 from agent.models import (
@@ -155,10 +156,28 @@ class ClosedLoopController:
             action_taken=action_text,
             responder="unassigned",
         )
+        tags = [
+            f"machine:{features.machine_id}",
+            "type:incident",
+            f"severity:{severity}",
+        ]
+        meta = {
+            "machine": features.machine_id,
+            "severity": severity,
+            "escalation": str(escalation),
+        }
         self.store.retain(
             inc_mem,
             timestamp=now_dt,
-            tags=[f"machine:{features.machine_id}", "type:incident"],
+            tags=tags,
+            metadata=meta,
+        )
+        ledger = get_outcome_ledger()
+        ledger.record_incident(
+            machine_id=features.machine_id,
+            signature=sig,
+            ts=self.clock(),
+            is_precursor=False,
         )
         self.state.add_timeline_entry(
             TimelineEntry(kind="INCIDENT", text=inc_mem, ts=self.clock())
@@ -214,6 +233,13 @@ class ClosedLoopController:
         recalled = self.store.recall(sig, limit=3)
         if recalled:
             logger.info("Soft anomaly matched historical incidents! Issuing early warning.")
+            ledger = get_outcome_ledger()
+            ledger.record_incident(
+                machine_id=features.machine_id,
+                signature=sig,
+                ts=now,
+                is_precursor=True,
+            )
             warning = build_template_advice(
                 features.machine_id, sig, recalled, is_precursor=True
             )
@@ -269,10 +295,30 @@ class ClosedLoopController:
                     root_cause=f"Anomaly: {inc.signature[:40]}...",
                     fix_applied=evt.fix or "Other",
                 )
+                tags = [
+                    f"machine:{inc.machine_id}",
+                    f"worker:{self.badged_worker}",
+                    f"fix:{evt.fix.lower() if evt.fix else 'other'}",
+                    "type:fix",
+                ]
+                meta = {
+                    "machine": inc.machine_id,
+                    "worker": self.badged_worker,
+                    "fix": evt.fix or "Other",
+                }
                 self.store.retain(
                     fix_mem,
                     timestamp=inc.fix_at,
-                    tags=[f"machine:{inc.machine_id}", f"worker:{self.badged_worker}", "type:fix"],
+                    tags=tags,
+                    metadata=meta,
+                )
+                ledger = get_outcome_ledger()
+                ledger.record_fix(
+                    machine_id=inc.machine_id,
+                    fix=evt.fix or "Other",
+                    worker=self.badged_worker,
+                    ts=self.clock(),
+                    signature=inc.signature,
                 )
                 self.state.add_timeline_entry(
                     TimelineEntry(kind="FIX", text=fix_mem, ts=self.clock())
@@ -391,10 +437,31 @@ class ClosedLoopController:
                 evidence=evidence,
             )
 
+            tags = [
+                f"machine:{machine_id}",
+                f"fix:{fix.lower()}",
+                f"result:{'worked' if worked else 'failed'}",
+                "type:outcome",
+            ]
+            meta = {
+                "machine": machine_id,
+                "fix": fix,
+                "result": "worked" if worked else "failed",
+            }
             self.store.retain(
                 out_mem,
                 timestamp=now_dt,
-                tags=[f"machine:{machine_id}", f"fix:{fix}", f"status:{'worked' if worked else 'failed'}"],
+                tags=tags,
+                metadata=meta,
+            )
+            ledger = get_outcome_ledger()
+            ledger.record_outcome(
+                machine_id=machine_id,
+                fix=fix,
+                worked=worked,
+                ts=now,
+                evidence=evidence,
+                worker=self.badged_worker,
             )
             self.state.add_timeline_entry(
                 TimelineEntry(kind="OUTCOME", text=out_mem, ts=now, worked=worked)

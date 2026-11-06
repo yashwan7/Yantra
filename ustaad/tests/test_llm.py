@@ -20,7 +20,8 @@ def test_tool_schemas_valid():
     assert "request_relay_reset" in names
 
 
-def test_template_advice_counts_and_fixes():
+def test_template_advice_counts_and_fixes(tmp_path):
+    from agent.ledger import OutcomeLedger
     memories = [
         Memory(
             id="1",
@@ -36,10 +37,20 @@ def test_template_advice_counts_and_fixes():
         ),
     ]
 
-    advice = build_template_advice("Pump-2", "Pump-2 signature", memories, is_precursor=False)
+    # Test with empty isolated ledger (exercises fallback)
+    empty_ledger = OutcomeLedger(filepath=tmp_path / "empty_ledger.json")
+    advice = build_template_advice("Pump-2", "Pump-2 signature", memories, is_precursor=False, ledger=empty_ledger)
     assert "Recalled 2 similar past incidents" in advice
     assert "Lubricated" in advice
     assert "1 WORKED, 1 FAILED" in advice
+
+    # Test with populated ledger
+    empty_ledger.record_incident("Pump-2", "sig", 1000.0)
+    empty_ledger.record_fix("Pump-2", "Lubricated", "W-07", 1010.0)
+    empty_ledger.record_outcome("Pump-2", "Lubricated", True, 1050.0, "worked")
+    advice_ledger = build_template_advice("Pump-2", "sig", memories, is_precursor=False, ledger=empty_ledger)
+    assert "Lubricated" in advice_ledger
+    assert "1 WORKED, 0 FAILED" in advice_ledger
 
 
 def test_request_relay_reset_refused_without_badge():
@@ -92,3 +103,4 @@ def test_mock_llm():
     res = mock.generate_advice("Pump-2", "sig", [])
     assert res == "Check bolts immediately."
     assert mock.call_count == 1
+

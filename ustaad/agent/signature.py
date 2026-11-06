@@ -25,3 +25,4 @@ def build_signature(features: Features) -> str:
         f"gas {gas_bucket}, {round(features.noise_per_min)} noise spikes/min, "
         f"panel {panel_bucket}, {features.uptime_min:.0f} min after startup."
     )
+

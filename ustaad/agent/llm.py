@@ -17,6 +17,7 @@ import re
 from typing import Any, Optional
 
 from agent.config import get_settings
+from agent.ledger import get_outcome_ledger
 from agent.models import Memory
 from agent.tools import TOOL_SCHEMAS, ToolRegistry
 
@@ -39,9 +40,53 @@ def build_template_advice(
     signature: str,
     recalled: list[Memory],
     is_precursor: bool = False,
+    ledger: Optional[Any] = None,
 ) -> str:
-    """Deterministic fallback advice when Groq LLM is unavailable or times out."""
-    if not recalled:
+    """
+    Deterministic advisory builder combining exact ledger statistics
+    with semantic memory facts retrieved from Hindsight.
+    
+    Guarantees exact counts (e.g., worked 2 of 3 times) regardless of
+    whether Hindsight returns raw template strings or extracted facts.
+    """
+    if ledger is None:
+        ledger = get_outcome_ledger()
+    stats = ledger.get_stats(machine_id) if ledger else {}
+    fix_outcomes = stats.get("fix_outcomes", {})
+    last_fix = stats.get("last_fix") or "Inspection"
+    best_fix = stats.get("best_fix") or last_fix
+
+    # Fallback to regex if ledger is empty (e.g. isolated unit tests)
+    if not fix_outcomes and recalled:
+        for m in recalled:
+            t = m.text
+            fix_match = re.search(r"Fix applied:\s*([^.\n]+)", t)
+            if fix_match:
+                f_name = fix_match.group(1).strip()
+                if f_name not in fix_outcomes:
+                    fix_outcomes[f_name] = {"worked": 0, "failed": 0}
+                last_fix = f_name
+
+            out_match = re.search(r'Fix "([^"]+)" (WORKED|FAILED)', t)
+            if out_match:
+                f_name = out_match.group(1).strip()
+                status = out_match.group(2)
+                if f_name not in fix_outcomes:
+                    fix_outcomes[f_name] = {"worked": 0, "failed": 0}
+                if status == "WORKED":
+                    fix_outcomes[f_name]["worked"] += 1
+                else:
+                    fix_outcomes[f_name]["failed"] += 1
+
+        if fix_outcomes:
+            best_fix = max(
+                fix_outcomes.keys(),
+                key=lambda k: (fix_outcomes[k]["worked"] - fix_outcomes[k]["failed"], fix_outcomes[k]["worked"]),
+            )
+
+    total_seen = max(len(recalled), stats.get("total_incidents", 0))
+
+    if not recalled and not fix_outcomes:
         prefix = "EARLY WARNING: " if is_precursor else "ADVISORY: "
         return (
             f"{prefix}Anomaly detected on {machine_id}. "
@@ -49,44 +94,8 @@ def build_template_advice(
             "Recommend immediate visual inspection of motor mounts, belt tension, and bearings."
         )
 
-    # Analyze recalled texts for fixes and outcomes
-    fix_stats: dict[str, dict[str, int]] = {}
-    last_fix: str = "Inspection"
-
-    for m in recalled:
-        t = m.text
-        # Look for FIX lines
-        fix_match = re.search(r"Fix applied:\s*([^.\n]+)", t)
-        if fix_match:
-            f_name = fix_match.group(1).strip()
-            if f_name not in fix_stats:
-                fix_stats[f_name] = {"worked": 0, "failed": 0}
-            last_fix = f_name
-
-        # Look for OUTCOME lines
-        out_match = re.search(r'Fix "([^"]+)" (WORKED|FAILED)', t)
-        if out_match:
-            f_name = out_match.group(1).strip()
-            status = out_match.group(2)
-            if f_name not in fix_stats:
-                fix_stats[f_name] = {"worked": 0, "failed": 0}
-            if status == "WORKED":
-                fix_stats[f_name]["worked"] += 1
-            else:
-                fix_stats[f_name]["failed"] += 1
-
-    total_seen = len(recalled)
-
-    # Pick recommended fix: highest worked, least failed
-    best_fix = last_fix
-    if fix_stats:
-        best_fix = max(
-            fix_stats.keys(),
-            key=lambda k: (fix_stats[k]["worked"] - fix_stats[k]["failed"], fix_stats[k]["worked"]),
-        )
-
-    worked_count = fix_stats.get(best_fix, {}).get("worked", 0)
-    failed_count = fix_stats.get(best_fix, {}).get("failed", 0)
+    worked_count = fix_outcomes.get(best_fix, {}).get("worked", 0)
+    failed_count = fix_outcomes.get(best_fix, {}).get("failed", 0)
 
     if is_precursor:
         return (
@@ -213,3 +222,4 @@ class LlmAdvisor:
                 return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor)
 
         return build_template_advice(machine_id, signature, recalled, is_precursor=is_precursor)
+
