@@ -1,7 +1,56 @@
-"""
-Ustaad architecture — Mermaid diagram.
+flowchart TD
+    subgraph SENSORS["Sensing Layer"]
+        ESP["ESP32 Sensor Node<br/>DHT11 (Temp/Hum)<br/>MQ Gas Sensor<br/>Mic DO Spike Int<br/>LDR Enclosure Door"]
+        FRDM_HW["FRDM MCX Board<br/>ADC Current Shunt<br/>Relay Hardware"]
+        UNO_Q["Arduino Uno Q<br/>MFRC522 RFID<br/>Virtual TFT / OLED"]
+    end
 
-Render with: npx mmdc -i docs/architecture.mmd -o docs/architecture.svg
-Or paste into https://mermaid.live/
-"""
+    subgraph SAFETY["Deterministic Safety Domain (C Firmware)"]
+        TRIP["safety_logic.c<br/>Ratio > 1.8x (3 consecutive s)<br/>OR Hard Limit > 800 mA"]
+        RELAY_HW["LATCHED RELAY<br/>Hardware Power Cutoff"]
+        TRIP -->|Trip signal| RELAY_HW
+        FRDM_HW -->|Raw ADC i_ma| TRIP
+    end
 
+    subgraph AGENT["Ustaad Agent Core (Python)"]
+        direction TB
+        INGEST["Ingest Pipeline<br/>MqttSource / SerialSource<br/>(or SimSource)"]
+        FEATURES["Rolling Window Features (60s)<br/>Ratio, Temp Slope (C/min), Gas Delta,<br/>Noise Spikes/min, Panel Status"]
+        ANOMALY["Deterministic Classifier<br/>HARD (immediate action)<br/>SOFT (precursor warning)"]
+        STATE_MACHINE["Closed-Loop State Machine<br/>IDLE ➔ DETECTED ➔ ADVISED<br/>➔ WAITING_FIX ➔ VERIFYING ➔ OUTCOME"]
+        LLM_ADVISOR["Advisory Engine<br/>Groq (openai/gpt-oss-120b)<br/>Tool Calling & Template Fallback"]
+        SHARED_STATE["Thread-Safe Shared State<br/>Telemetry, Timeline, Recalled, Display"]
+
+        INGEST --> FEATURES --> ANOMALY --> STATE_MACHINE
+        STATE_MACHINE <--> SHARED_STATE
+        STATE_MACHINE -->|Signature query| LLM_ADVISOR
+    end
+
+    subgraph MEMORY["Persistent Memory Domain"]
+        HINDSIGHT["Hindsight (Vectorize)<br/>retain() ➔ Incident/Fix/Outcome<br/>recall() ➔ Semantic Vector Search<br/>reflect() ➔ Systemic Patterns Synthesis"]
+        LOCAL_MEM["LocalMemory (Fallback)<br/>data/local_memory.jsonl<br/>Token Overlap Scoring"]
+    end
+
+    subgraph OPERATOR["On-Site Technician & Dashboard"]
+        DASH["Industrial Web UI (FastAPI)<br/>Telemetry Gauges, Timeline,<br/>Virtual TFT Display, Scenario Controls"]
+        RFID["RFID Badge-in & Fix Choice<br/>Authorized Safety Reset Request"]
+    end
+
+    %% Connections
+    ESP -->|MQTT: ustaad/site1/pump-2/env| INGEST
+    TRIP -.->|UART Serial JSON: CUTOFF / Status| INGEST
+    UNO_Q <-->|MQTT: ui_event & display| INGEST
+
+    LLM_ADVISOR <-->|recall / retain| HINDSIGHT
+    LLM_ADVISOR <-->|fallback| LOCAL_MEM
+
+    STATE_MACHINE -->|Update Virtual TFT| DASH
+    RFID -->|POST /api/ui/*| DASH --> STATE_MACHINE
+    STATE_MACHINE -.->|Verified Reset Cmd only after Badge| TRIP
+
+    classDef safety fill:#f43f5e,stroke:#9f1239,stroke-width:2px,color:#fff;
+    classDef agent fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff;
+    classDef memory fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff;
+    class TRIP,RELAY_HW safety;
+    class INGEST,FEATURES,ANOMALY,STATE_MACHINE,LLM_ADVISOR,SHARED_STATE agent;
+    class HINDSIGHT,LOCAL_MEM memory;
