@@ -1,8 +1,8 @@
-# Ustaad — Industrial Incident-Response Agent
+# Yantra — Industrial Incident-Response Agent
 
-Ustaad is an intelligent incident-response agent for industrial machinery (pumps, fans, compressors) featuring persistent memory powered by **Hindsight** (Vectorize).
+Yantra is an intelligent incident-response agent for industrial machinery (pumps, fans, compressors) featuring persistent memory powered by **Hindsight** (Vectorize).
 
-The agent monitors continuous multi-sensor telemetry, deterministically identifies anomalies, recalls matching past incidents from persistent memory, advises technicians on verified resolutions, and **closes the loop** by verifying telemetry post-fix to learn whether the repair worked or failed. Over time, Ustaad recognizes weak precursor patterns and warns operators prior to hard electrical cutoff faults.
+The agent monitors continuous multi-sensor telemetry, deterministically identifies anomalies, recalls matching past incidents from persistent memory, advises technicians on verified resolutions, and **closes the loop** by verifying telemetry post-fix to learn whether the repair worked or failed. Over time, Yantra recognizes weak precursor patterns and warns operators prior to hard electrical cutoff faults.
 
 ---
 
@@ -12,7 +12,7 @@ The agent monitors continuous multi-sensor telemetry, deterministically identifi
 ┌────────────────────────────────────────────────────────────────────────┐
 │  HARDWARE SENSING LAYER (Optional — SIMULATOR=1 bypasses hardware)    │
 │                                                                        │
-│  ESP32 (Temp/Hum/Gas/Noise/Door) ──MQTT──► Ustaad Agent (Python)       │
+│  ESP32 (Temp/Hum/Gas/Noise/Door) ──MQTT──► Yantra Agent (Python)       │
 │  FRDM MCX Board (Current Shunt)  ──UART──►   • Features (60s rolling)  │
 │  Uno Q MCU (RFID + TFT Screen)   ──MQTT──►   • Deterministic Anomaly   │
 │                                              • Closed-Loop State Mach  │
@@ -54,7 +54,7 @@ Open your browser to <http://localhost:8000> to interact with live telemetry, tr
 
 ## How Hindsight is Used
 
-Ustaad leverages Hindsight (Vectorize) for persistent vector memory across three primary primitives: `retain`, `recall`, and `reflect`.
+Yantra leverages Hindsight (Vectorize) for persistent vector memory across three primary primitives: `retain`, `recall`, and `reflect`.
 
 ### 1. `retain(content, tags, metadata)`
 Persists incident observations, corrective actions taken by technicians, and empirical post-repair sensor verifications.
@@ -80,7 +80,7 @@ Persists incident observations, corrective actions taken by technicians, and emp
   ```
 
 ### 2. `recall(query, budget="mid", limit=5)`
-When an anomaly occurs, Ustaad builds a deterministic signature string and queries Hindsight to retrieve the top historical matches:
+When an anomaly occurs, Yantra builds a deterministic signature string and queries Hindsight to retrieve the top historical matches:
 ```python
 results = client.recall(
     bank_id="ustaad-site1",
@@ -98,7 +98,7 @@ synthesis = client.reflect(
 )
 ```
 
-> **Live Verification Status:** Verified against live **Hindsight Cloud** (`https://api.hindsight.vectorize.io`) and **Groq** (`openai/gpt-oss-120b`). Retain, recall, and reflect round-trips pass live. When keys are omitted, Ustaad seamlessly falls back to `LocalMemory` (`data/local_memory_<bank_id>.jsonl`) with token-overlap similarity scoring and `MockLLM`/template advice.
+> **Live Verification Status:** Verified against live **Hindsight Cloud** (`https://api.hindsight.vectorize.io`) and **Groq** (`openai/gpt-oss-120b`). Retain, recall, and reflect round-trips pass live. When keys are omitted, Yantra seamlessly falls back to `LocalMemory` (`data/local_memory_<bank_id>.jsonl`) with token-overlap similarity scoring and `MockLLM`/template advice.
 
 ---
 
@@ -138,7 +138,7 @@ The demonstration showcases a three-stage learning progression:
    * Displays step-by-step procedure and required badge-in protocol.
 3. **Incident 3 (Early Warning Precursor):**
    * Weak precursors emerge: current ratio elevates to 1.25x baseline and acoustic noise spikes rise.
-   * Ustaad recognizes the signature that preceded previous hard faults and fires an **EARLY WARNING** alert on the screen *before* the electrical safety relay ever trips.
+   * Yantra recognizes the signature that preceded previous hard faults and fires an **EARLY WARNING** alert on the screen *before* the electrical safety relay ever trips.
 
 ---
 
@@ -152,7 +152,7 @@ The demonstration showcases a three-stage learning progression:
 
 ## Division of Roles: Hindsight vs. Outcome Ledger
 
-To guarantee both rich semantic memory reasoning and mathematical precision across machine runs, Ustaad strictly separates responsibilities:
+To guarantee both rich semantic memory reasoning and mathematical precision across machine runs, Yantra strictly separates responsibilities:
 
 1. **Hindsight (Vectorize) Memory Bank:**
    * **Role:** Semantic retrieval and narrative intelligence.

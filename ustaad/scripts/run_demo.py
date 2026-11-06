@@ -76,7 +76,7 @@ def run_demo(fresh: bool = False):
     )
     controller.cfg.verify_seconds = 4  # accelerated verification for demo
 
-    print(f"\nStarting Ustaad 3-Incident Demo Arc (Machine: Pump-2, Bank: {bank_id})...")
+    print(f"\nStarting Yantra 3-Incident Demo Arc (Machine: Pump-2, Bank: {bank_id})...")
 
     # ══════════════════════════════════════════════════════════════════════════
     # INCIDENT 1: First Fault — Cold Memory (Truly Generic)

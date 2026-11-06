@@ -21,3 +21,4 @@ def isolate_unit_tests(monkeypatch, tmp_path):
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+

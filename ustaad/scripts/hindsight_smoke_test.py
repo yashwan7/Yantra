@@ -118,7 +118,7 @@ def _live_test() -> bool:
         client = Hindsight(base_url=base_url, api_key=api_key)
 
         test_text = (
-            "SMOKE TEST | Ustaad | offline-verify\n"
+            "SMOKE TEST | Yantra | offline-verify\n"
             "Signature: Pump-2: current 1.2x baseline, temperature rising (+1.5 C/min), "
             "gas normal, 3 noise spikes/min, panel closed, 5 min after startup.\n"
             "Action taken by system: smoke test retain."

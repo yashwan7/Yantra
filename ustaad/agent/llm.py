@@ -23,7 +23,7 @@ from agent.tools import TOOL_SCHEMAS, ToolRegistry
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are Ustaad, an expert industrial incident-response assistant for fans, pumps, and compressors.
+SYSTEM_PROMPT = """You are Yantra, an expert industrial incident-response assistant for fans, pumps, and compressors.
 Your duty is to assist on-site technicians by recalling past incidents, identifying root causes, and suggesting verified fixes.
 
 Rules:

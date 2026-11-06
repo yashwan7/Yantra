@@ -68,7 +68,7 @@ def _agent_loop(state: SharedState, stop_event: threading.Event) -> None:
 
 def main() -> None:
     cfg = get_settings()
-    logger.info("Starting Ustaad (machine=%s, site=%s, sim=%s)", cfg.machine_id, cfg.site, cfg.simulator)
+    logger.info("Starting Yantra (machine=%s, site=%s, sim=%s)", cfg.machine_id, cfg.site, cfg.simulator)
 
     # Initialize shared state
     state = SharedState()
@@ -92,7 +92,7 @@ def main() -> None:
     agent_thread = threading.Thread(target=_agent_loop, args=(state, stop_event), name="AgentLoop", daemon=True)
     agent_thread.start()
 
-    logger.info("Ustaad dashboard accessible at http://0.0.0.0:8000")
+    logger.info("Yantra dashboard accessible at http://0.0.0.0:8000")
     try:
         uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
     finally:
@@ -100,7 +100,7 @@ def main() -> None:
         for s in sources:
             s.stop()
         agent_thread.join(timeout=2.0)
-        logger.info("Ustaad shutdown complete.")
+        logger.info("Yantra shutdown complete.")
 
 
 if __name__ == "__main__":

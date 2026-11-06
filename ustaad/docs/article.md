@@ -4,7 +4,7 @@ In industrial manufacturing, every plant has that one veteran technician who can
 
 When that technician retires or changes shifts, that hard-won empirical intuition leaves with them. Traditional SCADA and predictive maintenance dashboards display time-series charts, FFT spectra, and threshold alerts, but they lack episodic memory. They do not remember what a technician did the last time an anomaly occurred, and more critically, they have no idea whether that intervention actually resolved the problem.
 
-To solve this, we engineered **Ustaad**: an autonomous incident-response agent for industrial machinery (pumps, fans, compressors) built on long-term agent memory powered by [Vectorize Hindsight](https://hindsight.vectorize.io/).
+To solve this, we engineered **Yantra**: an autonomous incident-response agent for industrial machinery (pumps, fans, compressors) built on long-term agent memory powered by [Vectorize Hindsight](https://hindsight.vectorize.io/).
 
 ---
 
@@ -82,7 +82,7 @@ This sentence serves both as the **retained memory text** and as the **recall qu
 
 A fundamental principle of industrial automation is that probabilistic models must never sit in the safety critical path. If a motor stalls, overcurrent can burn out windings or ignite insulation within seconds. Waiting for an LLM API round-trip to decide whether to trip a contactor is unacceptable.
 
-In Ustaad, safety is decoupled from intelligence:
+In Yantra, safety is decoupled from intelligence:
 1. **Safety Path (Firmware):** Deterministic C firmware running on an NXP FRDM MCXN236 microcontroller samples current at 100 Hz. If current exceeds 1.8x baseline for 3 consecutive 100 ms samples (with a 1.5-second startup inrush blanking window), the microcontroller instantly de-energizes the safety relay via hardware GPIO and latches the state. It operates with zero cloud or network connectivity.
 2. **Intelligence Path (Python Agent):** The agent receives the `CUTOFF` event over UART/MQTT, transforms the telemetry into a symptom signature, queries Hindsight for past incidents, and prompts an LLM (Groq) to advise the on-site technician.
 3. **Accountability Path (Physical Badging):** Relay reset cannot be executed remotely or automatically by the LLM. An on-site technician must physically badge in via an RFID reader and select their chosen fix on a local display.
@@ -91,7 +91,7 @@ In Ustaad, safety is decoupled from intelligence:
 
 ## The Closed Loop: Why Retaining "Fix Outcomes" is the Game Changer
 
-Most diagnostic systems stop after giving advice. Ustaad closes the feedback loop.
+Most diagnostic systems stop after giving advice. Yantra closes the feedback loop.
 
 When a technician applies a fix (e.g., *"Lubricated bearings"*), the agent does not immediately assume the problem is solved. Instead, it enters a `VERIFYING` state:
 - It tracks sensor telemetry over a verification window (configurable from 90 seconds in demo mode to 10 minutes in production).
@@ -134,7 +134,7 @@ When the same mechanical drag recurs days later:
   ```
 
 #### Incident 3: Proactive Precursor Warning
-Because Hindsight retains temporal context, the agent notes that prior hard cutoffs were preceded by subtle precursor signatures (current at 1.25x baseline and elevated acoustic noise). When these weak signals appear simultaneously, Ustaad issues an **EARLY WARNING** alert on the technician's screen *before* the hardware overcurrent relay ever trips, preventing unplanned factory downtime.
+Because Hindsight retains temporal context, the agent notes that prior hard cutoffs were preceded by subtle precursor signatures (current at 1.25x baseline and elevated acoustic noise). When these weak signals appear simultaneously, Yantra issues an **EARLY WARNING** alert on the technician's screen *before* the hardware overcurrent relay ever trips, preventing unplanned factory downtime.
 
 ---
 
@@ -149,9 +149,10 @@ Deploying edge AI with persistent memory revealed several real-world engineering
 
 ## Conclusion
 
-Industrial AI agents must do more than just process prompt templates; they must build persistent, verifiable operational experience. By translating analog telemetry into natural language symptom signatures and coupling semantic memory with deterministic safety firmware, Ustaad provides a blueprint for resilient, self-learning industrial systems.
+Industrial AI agents must do more than just process prompt templates; they must build persistent, verifiable operational experience. By translating analog telemetry into natural language symptom signatures and coupling semantic memory with deterministic safety firmware, Yantra provides a blueprint for resilient, self-learning industrial systems.
 
 To explore the architecture, client SDK, and persistent memory concepts:
 - [Vectorize Hindsight GitHub Repository](https://github.com/vectorize-io/hindsight)
 - [Vectorize Hindsight Documentation & Cloud Console](https://hindsight.vectorize.io/)
 - [Understanding Agent Memory Architecture](https://vectorize.io/what-is-agent-memory)
+

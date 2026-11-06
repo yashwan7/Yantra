@@ -1,7 +1,7 @@
 Most factory monitoring tools give you graphs.
 When a machine fails, they have zero memory of what fixed it last time.
 
-We built Ustaad: an industrial incident agent that remembers faults and verifies repairs using Vectorize Hindsight.
+We built Yantra: an industrial incident agent that remembers faults and verifies repairs using Vectorize Hindsight.
 
 Key lessons:
 1. Converting sensor readings into natural language sentences lets semantic memory index physical states accurately.
@@ -9,7 +9,7 @@ Key lessons:
 3. Closed-loop verification is crucial: the agent verifies post-repair telemetry and retains if the fix WORKED or FAILED.
 4. Cold start: generic advice -> Incident 2: recalls verified fix -> Incident 3: proactive early warning.
 
-Code: https://github.com/yashwanth/ustaad
+Code: https://github.com/yashwanth/yantra
 
 #AIAgents #AI #Hindsight #AgentMemory
 
