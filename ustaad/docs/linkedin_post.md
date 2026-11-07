@@ -9,7 +9,7 @@ Key lessons:
 3. Closed-loop verification is crucial: the agent verifies post-repair telemetry and retains if the fix WORKED or FAILED.
 4. Cold start: generic advice -> Incident 2: recalls verified fix -> Incident 3: proactive early warning.
 
-Code: https://github.com/yashwanth/yantra
+Code: https://github.com/yashwan7/Tantra
 
 #AIAgents #AI #Hindsight #AgentMemory
 
